@@ -1,0 +1,49 @@
+# Supabase CLI config for SoleMate VN
+# After creating your Supabase project, run:
+#   supabase login
+#   supabase link --project-ref YOUR_PROJECT_REF
+
+[project]
+project_id = "solemate-vn"
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[db.pooler]
+enabled = false
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[api.tls]
+enabled = false
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+jwt_expiry = 3600
+enable_anonymous_sign_ins = false
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[edge_runtime]
+enabled = true
+policy = "oneshot"
+
+[analytics]
+enabled = false
+
+[experimental]
+orioledb_version = ""

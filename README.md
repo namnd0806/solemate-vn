@@ -1,36 +1,134 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# SoleMate VN
 
-## Getting Started
+Website bán giày thể thao mô phỏng – Next.js 14 App Router + Supabase + Vercel.
 
-First, run the development server:
+## Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Frontend + API:** Next.js 14 App Router (JavaScript)
+- **Styling:** Tailwind CSS v4
+- **Database:** Supabase (PostgreSQL)
+- **Auth:** bcryptjs + JWT (jose) via HttpOnly cookies
+- **Cart:** localStorage + React Context
+- **Deploy:** Vercel
+
+---
+
+## Cấu trúc dự án
+
+```
+solemate-vn/
+├── app/
+│   ├── (store)/        # Storefront pages
+│   ├── (admin)/        # Admin panel pages
+│   └── api/            # API Routes
+├── components/         # React components
+├── contexts/           # CartContext
+├── lib/                # DB layer, auth, utils
+├── supabase/           # SQL files
+└── __tests__/          # Property-based tests
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Hướng dẫn Deploy
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Bước 1 – Tạo Supabase Project
 
-## Learn More
+1. Vào [supabase.com](https://supabase.com) → New Project
+2. Lấy **Project URL** và **Anon Key** từ Settings → API
+3. Lấy **Service Role Key** từ Settings → API (giữ bí mật)
 
-To learn more about Next.js, take a look at the following resources:
+### Bước 2 – Deploy Database (2 cách)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+#### Cách A: Dùng Supabase CLI (khuyến nghị — agent có thể làm tự động)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+cd solemate-vn
 
-## Deploy on Vercel
+# Login Supabase CLI
+supabase login
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Link với project của bạn (lấy Project Ref từ Supabase Dashboard → Settings → General)
+supabase link --project-ref YOUR_PROJECT_REF_ID
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Push toàn bộ migrations lên remote database
+supabase db push
+
+# Kiểm tra trạng thái
+supabase migration list
+```
+
+Hoặc chạy script tự động (Windows):
+```cmd
+scripts\deploy-db.cmd
+```
+
+#### Cách B: Thủ công qua SQL Editor
+
+Trong Supabase Dashboard → SQL Editor, chạy lần lượt:
+1. Copy nội dung `supabase/migrations/20240101000000_initial_schema.sql` → Run
+2. Copy nội dung `supabase/migrations/20240101000001_rpc_functions.sql` → Run
+3. Copy nội dung `supabase/seed.sql` → Run
+
+### Bước 3 – Deploy lên Vercel
+
+1. Push code lên GitHub
+2. Vào [vercel.com](https://vercel.com) → Import Project → chọn repo
+3. Trong **Environment Variables**, thêm:
+
+| Variable | Mô tả |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase Project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Anon Key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase Service Role Key (**server-only**) |
+| `JWT_SECRET` | Secret key cho JWT (≥32 ký tự) |
+
+> ⚠️ **Quan trọng:** `SUPABASE_SERVICE_ROLE_KEY` **KHÔNG** được đặt prefix `NEXT_PUBLIC_`. Key này chỉ dùng server-side.
+
+4. Click **Deploy**
+
+### Bước 4 – Kiểm tra
+
+- Truy cập `/` → xem trang chủ có sản phẩm
+- Truy cập `/admin/login` → đăng nhập với `admin@solemate.vn` / `Admin123!`
+- Truy cập `/login` → đăng nhập với `nam@solemate.vn` / `Nam123!`
+
+---
+
+## Phát triển Local
+
+```bash
+# Clone và cài dependencies
+cd solemate-vn
+npm install
+
+# Tạo .env.local (copy từ .env.local.example và điền thông tin thật)
+cp .env.local.example .env.local
+
+# Chạy dev server
+npm run dev
+
+# Chạy tests
+npm run test
+# hoặc
+npx vitest --run
+```
+
+---
+
+## Tài khoản mẫu (sau khi chạy seed.sql)
+
+| Role | Email | Password |
+|---|---|---|
+| Admin | admin@solemate.vn | Admin123! |
+| Customer | nam@solemate.vn | Nam123! |
+
+---
+
+## Lưu ý bảo mật
+
+- Tất cả mutations database đi qua API Routes với Service Role Key
+- Không có client-side database mutation
+- Admin routes được bảo vệ bởi Edge Middleware (`middleware.js`)
+- Passwords được hash bằng bcryptjs (cost factor 10)
+- JWT tokens lưu trong HttpOnly cookies (không thể đọc từ JavaScript)
