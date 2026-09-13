@@ -34,7 +34,12 @@ export default async function PLPPage({ searchParams }) {
           <span className="text-sm font-normal text-gray-400 ml-2">({total} sản phẩm)</span>
         </h1>
         <form>
-          <select name="sort" defaultValue={params.sort} onChange="this.form.submit()" className="border rounded-lg px-3 py-2 text-sm">
+          <select
+            name="sort"
+            defaultValue={params.sort}
+            onChange={e => { const f = e.target.form; const url = new URL(window.location.href); url.searchParams.set('sort', e.target.value); window.location.href = url.toString() }}
+            className="border rounded-lg px-3 py-2 text-sm"
+          >
             {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </form>
