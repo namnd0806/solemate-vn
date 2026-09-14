@@ -1,11 +1,22 @@
 import { NextResponse } from 'next/server'
-import { getAdminFromRequest } from '@/lib/auth'
+import { cookies } from 'next/headers'
+import { verifyJwt } from '@/lib/auth'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 
 export async function POST(request) {
   try {
-    const admin = await getAdminFromRequest(request)
-    if (!admin) return NextResponse.json({ ok: false, message: 'Unauthorized.' }, { status: 401 })
+    // Use next/headers cookies() directly — more reliable for multipart requests
+    const cookieStore = await cookies()
+    const token = cookieStore.get('smvn_admin_token')?.value
+
+    if (!token) {
+      return NextResponse.json({ ok: false, message: 'Chưa đăng nhập.' }, { status: 401 })
+    }
+
+    const payload = await verifyJwt(token)
+    if (!payload || payload.role !== 'ADMIN') {
+      return NextResponse.json({ ok: false, message: 'Không có quyền.' }, { status: 401 })
+    }
 
     const formData = await request.formData()
     const file = formData.get('file')
@@ -25,7 +36,10 @@ export async function POST(request) {
         upsert: false,
       })
 
-    if (error) throw error
+    if (error) {
+      console.error('Storage upload error:', error)
+      return NextResponse.json({ ok: false, message: 'Lỗi upload: ' + error.message }, { status: 500 })
+    }
 
     const { data: { publicUrl } } = supabase.storage
       .from('product-images')
@@ -34,6 +48,6 @@ export async function POST(request) {
     return NextResponse.json({ ok: true, data: { url: publicUrl } })
   } catch (err) {
     console.error('POST /api/products/upload error:', err)
-    return NextResponse.json({ ok: false, message: 'Lỗi upload ảnh.' }, { status: 500 })
+    return NextResponse.json({ ok: false, message: 'Lỗi hệ thống: ' + err.message }, { status: 500 })
   }
 }
