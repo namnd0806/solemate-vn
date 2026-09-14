@@ -65,7 +65,7 @@ export default function CheckoutPage() {
       if (!data.ok) { setToast({ message: data.message, type: 'error' }); setSubmitting(false); return }
       const orderId = data.data?.order_id || data.order_id
       clearCart()
-      setTimeout(() => router.push(`/order/${orderId}?new=1`), 100)
+      setTimeout(() => router.push(`/order-success?id=${orderId}`), 150)
     } catch { setToast({ message: 'Lỗi hệ thống.', type: 'error' }); setSubmitting(false) }
   }
 
