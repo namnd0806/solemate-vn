@@ -1,4 +1,4 @@
-import { cookies, headers } from 'next/headers'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth'
 import AdminHeader from '@/components/admin/AdminHeader'
@@ -13,16 +13,10 @@ const NAV = [
 ]
 
 export default async function AdminLayout({ children }) {
-  const headersList = await headers()
-  const pathname = headersList.get('x-invoke-path') || headersList.get('x-pathname') || ''
-
-  // Don't redirect on login page
-  const isLoginPage = pathname === '/admin/login' || pathname.endsWith('/login')
-
-  let admin = null
   const cookieStore = await cookies()
   const token = cookieStore.get('smvn_admin_token')?.value
 
+  let admin = null
   if (token) {
     try {
       const payload = await verifyJwt(token)
@@ -30,14 +24,8 @@ export default async function AdminLayout({ children }) {
     } catch {}
   }
 
-  // Protect admin routes — redirect to login if not authenticated
-  if (!admin && !isLoginPage) {
+  if (!admin) {
     redirect('/admin/login')
-  }
-
-  // Login page: render without sidebar/header
-  if (isLoginPage || !admin) {
-    return <>{children}</>
   }
 
   return (

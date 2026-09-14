@@ -34,12 +34,14 @@ export default function AdminLoginPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm text-gray-600 mb-1">Email</label>
-            <input type="email" required value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+            <input type="email" required value={form.email}
+              onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
               className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
           </div>
           <div>
             <label className="block text-sm text-gray-600 mb-1">Mật khẩu</label>
-            <input type="password" required value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
+            <input type="password" required value={form.password}
+              onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
               className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
           </div>
           {error && <p className="text-red-600 text-sm">{error}</p>}
