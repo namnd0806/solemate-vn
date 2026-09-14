@@ -21,7 +21,7 @@ export default function CheckoutPage() {
   const [toast, setToast] = useState(null)
   const [submitting, setSubmitting] = useState(false)
 
-  useEffect(() => { if (items.length === 0) router.replace('/cart') }, [items, router])
+  useEffect(() => { if (items.length === 0 && !submitting) router.replace('/cart') }, [items, router, submitting])
 
   const subtotal = total
   const shippingFee = shipping === 'EXPRESS' ? 50000 : subtotal - discount >= 499000 ? 0 : 30000
@@ -63,8 +63,10 @@ export default function CheckoutPage() {
       const res = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       const data = await res.json()
       if (!data.ok) { setToast({ message: data.message, type: 'error' }); setSubmitting(false); return }
+      const orderId = data.data?.order_id || data.order_id
       clearCart()
-      router.push(`/order/${data.data.order_id}`)
+      // Small delay ensures clearCart localStorage sync before navigation
+      setTimeout(() => router.push(`/order/${orderId}`), 100)
     } catch { setToast({ message: 'Lỗi hệ thống.', type: 'error' }); setSubmitting(false) }
   }
 
