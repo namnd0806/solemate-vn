@@ -8,9 +8,9 @@ VALUES (1, 499000, 30000, 50000, 3) ON CONFLICT (id) DO NOTHING;
 -- Users
 INSERT INTO users (id, role, first_name, last_name, email, phone, password_hash, active, created_at) VALUES
   ('U001','CUSTOMER','Nam','Nguyễn','nam@solemate.vn','0912345678',
-   '$2a$10$YmCKDEfbfSKPLMZLFAjvuOqOXFpFBTBhTDzI2HSTFh0a8.iRuuFXa',TRUE, NOW() - INTERVAL '90 days'),
+   '$2b$10$CLbh.DE8pDv7Arum.gd0VOeE.9CPx8k8KipCFacqi/zCQqqjxozRC',TRUE, NOW() - INTERVAL '90 days'),
   ('A001','ADMIN','Admin','SoleMate','admin@solemate.vn','0900000000',
-   '$2a$10$wJ8aMbS5I./n3.FpL0MgFOHRoRrTdOmX3r/1u47dDCBHDZ3VCk8Hy',TRUE, NOW() - INTERVAL '180 days')
+   '$2b$10$8eVgQ0C/kzOAMI.MDNm82.j5l4KThLT0OJfHwh5/mxFYWI1D13k2G',TRUE, NOW() - INTERVAL '180 days')
 ON CONFLICT (id) DO NOTHING;
 
 -- Products
