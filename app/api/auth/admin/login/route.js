@@ -38,8 +38,8 @@ export async function POST(request) {
     const response = NextResponse.json({ ok: true, data: safeUser })
     response.cookies.set('smvn_admin_token', token, {
       httpOnly: true,
-      sameSite: 'strict',
-      path: '/admin',
+      sameSite: 'lax',
+      path: '/',
       maxAge: 60 * 60 * 24, // 24 hours
     })
     return response
