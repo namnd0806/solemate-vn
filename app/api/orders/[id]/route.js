@@ -8,19 +8,20 @@ export async function GET(request, { params }) {
     const admin = await getAdminFromRequest(request)
     const customer = await getCustomerFromRequest(request)
 
-    if (!admin && !customer) {
-      return NextResponse.json({ ok: false, message: 'Unauthorized.' }, { status: 401 })
-    }
-
     const result = await getOrderById(id)
     if (!result.ok) return NextResponse.json(result, { status: 404 })
 
-    // Customers can only see their own orders
-    if (!admin && result.data.customer_id !== customer.sub) {
-      return NextResponse.json({ ok: false, message: 'Không tìm thấy đơn hàng.' }, { status: 404 })
-    }
+    // Admin can see all orders
+    if (admin) return NextResponse.json(result)
 
-    return NextResponse.json(result)
+    // Customer can see their own orders
+    if (customer && result.data.customer_id === customer.sub) return NextResponse.json(result)
+
+    // Guest: allow viewing guest orders (no customer_id) - order lookup by ID only
+    // This is acceptable since order IDs are non-guessable (timestamp+random)
+    if (result.data.guest) return NextResponse.json(result)
+
+    return NextResponse.json({ ok: false, message: 'Không tìm thấy đơn hàng.' }, { status: 404 })
   } catch (err) {
     console.error('GET /api/orders/[id] error:', err)
     return NextResponse.json({ ok: false, message: 'Lỗi hệ thống.' }, { status: 500 })
