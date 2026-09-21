@@ -115,18 +115,18 @@ export default function PDPPage() {
           <Link href="/" className="hover:text-primary">Trang chủ</Link><span>/</span><Link href="/products" className="hover:text-primary">Sản phẩm</Link><span>/</span><span className="text-gray-600">{product.name}</span>
         </nav>
 
-        <div className="grid gap-8 lg:grid-cols-[1.05fr_.95fr] lg:gap-12">
-          <div className="relative min-h-[390px] overflow-hidden rounded-[26px] border border-gray-200 bg-[radial-gradient(circle_at_72%_20%,#fff_0%,#f1f3f4_58%,#e7e9eb_100%)] shadow-sm sm:min-h-[520px]" data-reveal>
+        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.12fr)_minmax(380px,.88fr)] lg:gap-12">
+          <div className="relative aspect-[4/3] overflow-hidden rounded-[28px] border border-gray-200 bg-[#eceeef] shadow-[0_24px_70px_rgba(20,23,28,.12)]" data-reveal>
             <span className="absolute left-5 top-5 z-10 rounded-full bg-white/85 px-3 py-1.5 text-[10px] font-black uppercase tracking-[.12em] text-gray-500 shadow-sm backdrop-blur">{product.brand}</span>
             <div className="absolute inset-x-[15%] bottom-[14%] h-5 rounded-full bg-black/10 blur-xl" />
             {product.image_url ? (
-              <Image src={product.image_url} alt={product.name} fill priority sizes="(max-width: 1024px) 100vw, 52vw" className="object-contain p-[8%]" />
+              <Image src={product.image_url} alt={product.name} fill priority sizes="(max-width: 1024px) 100vw, 56vw" className="object-cover object-center" />
             ) : (
               <ShoeSvg className="absolute inset-[7%] h-[86%] w-[86%] drop-shadow-2xl" color={product.accent || '#e8642a'} brand={product.brand} />
             )}
           </div>
 
-          <div className="py-2 lg:py-5" data-reveal>
+          <div className="rounded-[26px] border border-gray-200 bg-white p-6 shadow-[0_18px_55px_rgba(20,23,28,.07)] sm:p-8 lg:sticky lg:top-24" data-reveal>
             <p className="section-kicker">Authentic footwear</p>
             <h1 className="mt-3 font-[family-name:var(--font-inter)] text-3xl font-black tracking-[-.04em] text-sole-dark sm:text-[40px] sm:leading-tight">{product.name}</h1>
             <div className="mt-5 flex items-center gap-3">
