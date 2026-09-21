@@ -7,9 +7,8 @@ export default function StoreEffects() {
   const pathname = usePathname()
 
   useEffect(() => {
-    const elements = document.querySelectorAll('[data-reveal]')
     if (!('IntersectionObserver' in window)) {
-      elements.forEach(element => element.classList.add('is-visible'))
+      document.querySelectorAll('[data-reveal]').forEach(element => element.classList.add('is-visible'))
       return
     }
 
@@ -25,8 +24,28 @@ export default function StoreEffects() {
       { threshold: 0.12, rootMargin: '0px 0px -48px' }
     )
 
-    elements.forEach(element => observer.observe(element))
-    return () => observer.disconnect()
+    const observeRevealElements = root => {
+      if (root instanceof Element && root.matches('[data-reveal]')) observer.observe(root)
+      root.querySelectorAll?.('[data-reveal]').forEach(element => observer.observe(element))
+    }
+
+    observeRevealElements(document)
+
+    // Product and account screens render their content after client-side data loads.
+    // Observe newly inserted reveal elements so they cannot remain permanently hidden.
+    const mutationObserver = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
+        mutation.addedNodes.forEach(node => {
+          if (node.nodeType === Node.ELEMENT_NODE) observeRevealElements(node)
+        })
+      })
+    })
+    mutationObserver.observe(document.body, { childList: true, subtree: true })
+
+    return () => {
+      mutationObserver.disconnect()
+      observer.disconnect()
+    }
   }, [pathname])
 
   return null
