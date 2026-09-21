@@ -56,7 +56,11 @@ export function CartProvider({ children }) {
         const idx = prev.findIndex(i => i.sku === sku)
         if (idx >= 0) {
           const updated = [...prev]
-          updated[idx] = { ...updated[idx], qty: updated[idx].qty + qty }
+          updated[idx] = {
+            ...updated[idx],
+            qty: updated[idx].qty + qty,
+            image_url: data.image_url || updated[idx].image_url || '',
+          }
           return updated
         }
         return [...prev, {
@@ -67,6 +71,7 @@ export function CartProvider({ children }) {
           name: data.name,
           brand: data.brand,
           slug: data.slug,
+          image_url: data.image_url || '',
           color: variant.color,
           size: variant.size,
           stock: variant.stock,
