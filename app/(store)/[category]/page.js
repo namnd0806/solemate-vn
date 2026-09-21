@@ -33,17 +33,22 @@ export default async function CategoryPage({ params, searchParams }) {
   const { products = [], total = 0 } = result.ok ? result.data : {}
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-10">
-      <h1 className="text-2xl font-bold text-sole-dark mb-2">{info.title}</h1>
-      <p className="text-gray-400 text-sm mb-8">{total} sản phẩm</p>
+    <div className="min-h-[60vh] bg-[#f7f8f9] py-10 lg:py-14">
+      <div className="store-container">
+      <div className="mb-8" data-reveal>
+        <span className="section-kicker">SoleMate collection</span>
+        <h1 className="section-title mt-1.5">{info.title}</h1>
+        <p className="mt-1 text-sm text-gray-400">{total} sản phẩm chính hãng</p>
+      </div>
 
       {products.length === 0 ? (
-        <div className="text-center py-24 text-gray-400">Chưa có sản phẩm.</div>
+        <div className="surface-card py-24 text-center text-gray-400">Chưa có sản phẩm trong danh mục này.</div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+        <div className="product-grid" data-reveal>
           {products.map(p => <ProductCard key={p.id} product={p} />)}
         </div>
       )}
+      </div>
     </div>
   )
 }

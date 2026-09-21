@@ -25,28 +25,31 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-16 bg-sole-gray">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 w-full max-w-md">
-        <h1 className="text-2xl font-bold text-sole-dark mb-6">Đăng ký tài khoản</h1>
+    <div className="relative flex min-h-[70vh] items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_18%_0%,rgba(242,106,46,.13),transparent_35%),#f5f6f7] px-4 py-16">
+      <div className="pointer-events-none absolute -right-32 -top-32 size-80 rounded-full border-[45px] border-primary/8" />
+      <div className="surface-card w-full max-w-md p-7 sm:p-9" data-reveal>
+        <span className="section-kicker">Join SoleMate</span>
+        <h1 className="mt-2 text-3xl font-black tracking-tight text-sole-dark">Đăng ký tài khoản</h1>
+        <p className="mb-7 mt-2 text-sm text-gray-400">Lưu wishlist và theo dõi mọi đơn hàng dễ dàng.</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-gray-600 mb-1">Họ *</label>
-              <input required value={form.lastName} onChange={e => setForm(p => ({...p, lastName: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+              <input required value={form.lastName} onChange={e => setForm(p => ({...p, lastName: e.target.value}))} className="form-field" />
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">Tên *</label>
-              <input required value={form.firstName} onChange={e => setForm(p => ({...p, firstName: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+              <input required value={form.firstName} onChange={e => setForm(p => ({...p, firstName: e.target.value}))} className="form-field" />
             </div>
           </div>
           {[['email','Email *','email',true],['phone','Số điện thoại','tel',false],['password','Mật khẩu *','password',true],['confirm','Xác nhận mật khẩu *','password',true]].map(([k,l,t,r]) => (
             <div key={k}>
               <label className="block text-sm text-gray-600 mb-1">{l}</label>
-              <input type={t} required={r} value={form[k]} onChange={e => setForm(p => ({...p,[k]:e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+              <input type={t} required={r} value={form[k]} onChange={e => setForm(p => ({...p,[k]:e.target.value}))} className="form-field" />
             </div>
           ))}
           {error && <p className="text-red-600 text-sm">{error}</p>}
-          <button type="submit" disabled={loading} className="w-full bg-primary text-white rounded-full py-3 font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50">
+          <button type="submit" disabled={loading} className="btn-primary mt-2 w-full disabled:opacity-50">
             {loading ? 'Đang đăng ký...' : 'Đăng ký'}
           </button>
         </form>

@@ -7,19 +7,26 @@ const CART_KEY = 'smvn_cart'
 
 export function CartProvider({ children }) {
   const [items, setItems] = useState([])
+  const [hydrated, setHydrated] = useState(false)
 
   // Load from localStorage on mount
   useEffect(() => {
+    let storedItems = []
     try {
       const stored = localStorage.getItem(CART_KEY)
-      if (stored) setItems(JSON.parse(stored))
+      if (stored) storedItems = JSON.parse(stored)
     } catch {}
+    queueMicrotask(() => {
+      setItems(storedItems)
+      setHydrated(true)
+    })
   }, [])
 
   // Persist to localStorage on change
   useEffect(() => {
+    if (!hydrated) return
     localStorage.setItem(CART_KEY, JSON.stringify(items))
-  }, [items])
+  }, [hydrated, items])
 
   const count = items.reduce((sum, item) => sum + item.qty, 0)
   const total = items.reduce((sum, item) => sum + (item.price || 0) * item.qty, 0)

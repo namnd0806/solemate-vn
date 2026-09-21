@@ -17,7 +17,7 @@ const orderArb = fc.record({
   status: fc.constantFrom(...STATUSES),
   total: fc.integer({ min: 0, max: 10000000 }),
   stock_restored: fc.boolean(),
-  created_at: fc.date({ min: new Date('2020-01-01'), max: new Date() }).map(d => d.toISOString()),
+  created_at: fc.date({ min: new Date('2020-01-01'), max: new Date(), noInvalidDate: true }).map(d => d.toISOString()),
 })
 
 function filterCustomerOrders(orders, customerId) {

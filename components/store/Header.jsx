@@ -2,8 +2,12 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useCart } from '@/contexts/CartContext'
+import {
+  CartIcon, ChevronDownIcon, CloseIcon, HeartIcon, MenuIcon,
+  SearchIcon, UserIcon,
+} from './Icons'
 
 const NAV_LINKS = [
   { href: '/', label: 'Trang chủ' },
@@ -16,102 +20,143 @@ const NAV_LINKS = [
 ]
 
 export default function Header({ user }) {
+  const pathname = usePathname()
   const router = useRouter()
   const { count } = useCart()
   const [search, setSearch] = useState('')
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
 
-  function handleSearch(e) {
-    e.preventDefault()
-    if (search.trim()) {
-      router.push(`/products?q=${encodeURIComponent(search.trim())}`)
-    }
+  function handleSearch(event) {
+    event.preventDefault()
+    const query = search.trim()
+    if (!query) return
+    setMobileOpen(false)
+    router.push(`/products?q=${encodeURIComponent(query)}`)
   }
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' })
+    setAccountOpen(false)
     router.push('/')
     router.refresh()
   }
 
+  function isActive(href) {
+    return href === '/' ? pathname === '/' : pathname === href
+  }
+
   return (
-    <header className="bg-sole-dark text-white sticky top-0 z-40 shadow-md">
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
-        {/* Logo */}
-        <Link href="/" className="flex-shrink-0 text-xl font-bold">
-          <span className="text-primary">Sole</span>Mate VN
+    <header className="sticky top-0 z-50 border-b border-white/8 bg-[#101214]/96 text-white shadow-[0_10px_30px_rgba(0,0,0,.16)] backdrop-blur-xl">
+      <div className="store-container flex h-[66px] items-center gap-4">
+        <Link href="/" className="group shrink-0 text-[21px] font-black tracking-[-.045em]" aria-label="SoleMate VN - Trang chủ">
+          <span className="text-primary transition-colors group-hover:text-[#ff8954]">Sole</span><span>Mate VN</span>
         </Link>
 
-        {/* Search */}
-        <form onSubmit={handleSearch} className="flex-1 max-w-md hidden md:flex">
-          <div className="flex w-full rounded-lg overflow-hidden border border-white/20">
+        <form onSubmit={handleSearch} className="hidden min-w-0 flex-1 md:flex lg:max-w-[325px]">
+          <div className="flex h-10 w-full overflow-hidden rounded-xl border border-white/15 bg-white/8 transition focus-within:border-primary/70 focus-within:bg-white/12 focus-within:ring-4 focus-within:ring-primary/10">
             <input
               type="search"
               value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Tìm kiếm giày..."
-              className="flex-1 px-3 py-2 bg-white/10 text-sm text-white placeholder-white/50 outline-none"
+              onChange={event => setSearch(event.target.value)}
+              placeholder="Tìm kiếm giày, thương hiệu..."
+              className="min-w-0 flex-1 bg-transparent px-4 text-[13px] text-white outline-none placeholder:text-white/40"
               aria-label="Tìm kiếm sản phẩm"
             />
-            <button type="submit" className="px-3 bg-primary hover:bg-orange-600 text-white text-sm" aria-label="Tìm">
-              🔍
+            <button type="submit" className="grid w-11 place-items-center bg-primary transition hover:bg-[#ff7c42]" aria-label="Tìm kiếm">
+              <SearchIcon className="size-[18px]" />
             </button>
           </div>
         </form>
 
-        {/* Nav (desktop) */}
-        <nav className="hidden lg:flex gap-5 text-sm">
-          {NAV_LINKS.map(l => (
-            <Link key={l.href} href={l.href} className="hover:text-primary transition-colors whitespace-nowrap">
-              {l.label}
+        <nav className="ml-auto hidden items-stretch self-stretch xl:flex" aria-label="Điều hướng chính">
+          {NAV_LINKS.map(link => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`relative flex items-center px-[11px] text-[13px] font-semibold transition-colors after:absolute after:inset-x-[11px] after:bottom-0 after:h-0.5 after:origin-center after:rounded-full after:bg-primary after:transition-transform ${isActive(link.href) ? 'text-primary after:scale-x-100' : 'text-white/78 hover:text-white after:scale-x-0 hover:after:scale-x-100'}`}
+            >
+              {link.label}
             </Link>
           ))}
         </nav>
 
-        {/* Cart & User */}
-        <div className="flex items-center gap-3 ml-auto">
-          <Link href="/cart" className="relative" aria-label={`Giỏ hàng (${count} sản phẩm)`}>
-            <span className="text-2xl">🛒</span>
+        <div className="ml-auto flex items-center gap-1.5 xl:ml-0">
+          <Link href="/wishlist" className="hidden size-10 place-items-center rounded-full text-white/70 transition hover:bg-white/8 hover:text-primary sm:grid" aria-label="Sản phẩm yêu thích">
+            <HeartIcon className="size-[19px]" />
+          </Link>
+          <Link href="/cart" className="relative grid size-10 place-items-center rounded-full text-white/85 transition hover:bg-white/8 hover:text-primary" aria-label={`Giỏ hàng (${count} sản phẩm)`}>
+            <CartIcon className="size-[21px]" />
             {count > 0 && (
-              <span className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+              <span className="absolute right-0 top-0 grid min-h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[9px] font-black text-white ring-2 ring-[#101214]">
                 {count > 99 ? '99+' : count}
               </span>
             )}
           </Link>
 
+          <span className="mx-1 hidden h-5 w-px bg-white/15 xl:block" />
+
           {user ? (
-            <div className="relative">
+            <div className="relative hidden xl:block">
               <button
-                onClick={() => setMenuOpen(o => !o)}
-                className="text-sm hover:text-primary transition-colors"
-                aria-haspopup="true"
-                aria-expanded={menuOpen}
+                onClick={() => setAccountOpen(open => !open)}
+                className="flex h-10 items-center gap-2 rounded-full px-3 text-[13px] font-semibold text-white/85 transition hover:bg-white/8 hover:text-white"
+                aria-haspopup="menu"
+                aria-expanded={accountOpen}
               >
-                👤 {user.first_name}
+                <UserIcon className="size-[17px]" />
+                {user.first_name}
+                <ChevronDownIcon className={`size-3.5 transition ${accountOpen ? 'rotate-180' : ''}`} />
               </button>
-              {menuOpen && (
-                <div className="absolute right-0 mt-2 bg-white text-sole-dark rounded-lg shadow-lg py-2 w-44 z-50">
-                  <Link href="/account/orders" className="block px-4 py-2 text-sm hover:bg-sole-gray" onClick={() => setMenuOpen(false)}>
-                    Đơn hàng của tôi
-                  </Link>
-                  <Link href="/wishlist" className="block px-4 py-2 text-sm hover:bg-sole-gray" onClick={() => setMenuOpen(false)}>
-                    Yêu thích
-                  </Link>
-                  <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm hover:bg-sole-gray text-red-600">
-                    Đăng xuất
-                  </button>
+              {accountOpen && (
+                <div className="absolute right-0 top-[calc(100%+10px)] w-52 overflow-hidden rounded-2xl border border-gray-100 bg-white p-2 text-sole-dark shadow-2xl" role="menu">
+                  <Link href="/account/orders" className="block rounded-xl px-3 py-2.5 text-sm hover:bg-sole-gray" onClick={() => setAccountOpen(false)}>Đơn hàng của tôi</Link>
+                  <Link href="/wishlist" className="block rounded-xl px-3 py-2.5 text-sm hover:bg-sole-gray" onClick={() => setAccountOpen(false)}>Sản phẩm yêu thích</Link>
+                  <button onClick={handleLogout} className="w-full rounded-xl px-3 py-2.5 text-left text-sm text-red-600 hover:bg-red-50">Đăng xuất</button>
                 </div>
               )}
             </div>
           ) : (
-            <div className="flex gap-2 text-sm">
-              <Link href="/login" className="hover:text-primary transition-colors">Đăng nhập</Link>
-              <span className="text-white/40">|</span>
-              <Link href="/register" className="hover:text-primary transition-colors">Đăng ký</Link>
+            <div className="hidden items-center gap-1 xl:flex">
+              <Link href="/login" className="rounded-full px-3 py-2 text-[13px] font-semibold text-white/80 transition hover:text-white">Đăng nhập</Link>
+              <Link href="/register" className="rounded-full border border-primary/80 px-4 py-2 text-[13px] font-bold text-primary transition hover:bg-primary hover:text-white">Đăng ký</Link>
             </div>
           )}
+
+          <button onClick={() => setMobileOpen(open => !open)} className="grid size-10 place-items-center rounded-full text-white transition hover:bg-white/8 xl:hidden" aria-label={mobileOpen ? 'Đóng menu' : 'Mở menu'} aria-expanded={mobileOpen}>
+            {mobileOpen ? <CloseIcon /> : <MenuIcon />}
+          </button>
         </div>
       </div>
+
+      {mobileOpen && (
+        <div className="border-t border-white/8 bg-[#121416] px-3 pb-5 pt-4 shadow-2xl xl:hidden">
+          <form onSubmit={handleSearch} className="mx-auto mb-4 flex h-11 max-w-2xl overflow-hidden rounded-xl border border-white/15 bg-white/8 md:hidden">
+            <input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Tìm kiếm sản phẩm..." className="min-w-0 flex-1 bg-transparent px-4 text-sm outline-none placeholder:text-white/40" aria-label="Tìm kiếm sản phẩm" />
+            <button type="submit" className="grid w-12 place-items-center bg-primary" aria-label="Tìm kiếm"><SearchIcon /></button>
+          </form>
+          <nav className="mx-auto grid max-w-2xl grid-cols-2 gap-1" aria-label="Điều hướng di động">
+            {NAV_LINKS.map(link => (
+              <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)} className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${isActive(link.href) ? 'bg-primary/12 text-primary' : 'text-white/75 hover:bg-white/6 hover:text-white'}`}>
+                {link.label}
+              </Link>
+            ))}
+            <div className="col-span-2 mt-2 flex gap-2 border-t border-white/10 pt-4">
+              {user ? (
+                <>
+                  <Link href="/account/orders" onClick={() => setMobileOpen(false)} className="flex-1 rounded-full border border-white/15 py-2.5 text-center text-sm font-semibold">Đơn hàng</Link>
+                  <button onClick={handleLogout} className="flex-1 rounded-full bg-primary py-2.5 text-sm font-bold">Đăng xuất</button>
+                </>
+              ) : (
+                <>
+                  <Link href="/login" onClick={() => setMobileOpen(false)} className="flex-1 rounded-full border border-white/15 py-2.5 text-center text-sm font-semibold">Đăng nhập</Link>
+                  <Link href="/register" onClick={() => setMobileOpen(false)} className="flex-1 rounded-full bg-primary py-2.5 text-center text-sm font-bold">Đăng ký</Link>
+                </>
+              )}
+            </div>
+          </nav>
+        </div>
+      )}
     </header>
   )
 }

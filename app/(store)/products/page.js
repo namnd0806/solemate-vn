@@ -1,15 +1,9 @@
 import { getProducts } from '@/lib/db/products'
 import ProductCard from '@/components/store/ProductCard'
+import ProductSort from '@/components/store/ProductSort'
 import Link from 'next/link'
 
-export const metadata = { title: 'Tất cả sản phẩm – SoleMate VN' }
-
-const SORT_OPTIONS = [
-  { value: 'newest', label: 'Mới nhất' },
-  { value: 'price_asc', label: 'Giá tăng dần' },
-  { value: 'price_desc', label: 'Giá giảm dần' },
-  { value: 'best_seller', label: 'Bán chạy' },
-]
+export const metadata = { title: 'Tất cả sản phẩm' }
 
 export default async function PLPPage({ searchParams }) {
   const sp = await searchParams
@@ -27,28 +21,21 @@ export default async function PLPPage({ searchParams }) {
   const { products = [], total = 0, totalPages = 1, page = 1 } = result.ok ? result.data : {}
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-10">
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-        <h1 className="text-2xl font-bold text-sole-dark">
-          {sp.q ? `Kết quả cho "${sp.q}"` : 'Tất cả sản phẩm'}
-          <span className="text-sm font-normal text-gray-400 ml-2">({total} sản phẩm)</span>
-        </h1>
-        <form>
-          <select
-            name="sort"
-            defaultValue={params.sort}
-            onChange={e => { const f = e.target.form; const url = new URL(window.location.href); url.searchParams.set('sort', e.target.value); window.location.href = url.toString() }}
-            className="border rounded-lg px-3 py-2 text-sm"
-          >
-            {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        </form>
+    <div className="min-h-[60vh] bg-[#f7f8f9] py-10 lg:py-14">
+      <div className="store-container">
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-4" data-reveal>
+        <div>
+          <span className="section-kicker">SoleMate collection</span>
+          <h1 className="section-title mt-1.5">{sp.q ? `Kết quả cho “${sp.q}”` : 'Tất cả sản phẩm'}</h1>
+          <p className="mt-1 text-sm text-gray-400">{total} sản phẩm chính hãng đang chờ bạn khám phá</p>
+        </div>
+        <ProductSort value={params.sort} />
       </div>
 
       {products.length === 0 ? (
-        <div className="text-center py-24 text-gray-400">Không tìm thấy sản phẩm nào.</div>
+        <div className="surface-card py-24 text-center text-gray-400">Không tìm thấy sản phẩm nào phù hợp.</div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+        <div className="product-grid" data-reveal>
           {products.map(p => <ProductCard key={p.id} product={p} />)}
         </div>
       )}
@@ -59,14 +46,15 @@ export default async function PLPPage({ searchParams }) {
           {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
             <Link
               key={n}
-              href={`?${new URLSearchParams({ ...sp, page: n })}`}
-              className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm border transition-colors ${n === page ? 'bg-primary text-white border-primary' : 'border-gray-300 hover:border-primary text-gray-700'}`}
+              href={`?${new URLSearchParams({ ...sp, page: String(n) }).toString()}`}
+              className={`grid size-10 place-items-center rounded-xl border text-sm font-bold transition ${n === page ? 'border-primary bg-primary text-white shadow-lg shadow-primary/20' : 'border-gray-200 bg-white text-gray-600 hover:border-primary hover:text-primary'}`}
             >
               {n}
             </Link>
           ))}
         </div>
       )}
+      </div>
     </div>
   )
 }

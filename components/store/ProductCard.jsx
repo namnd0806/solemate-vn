@@ -1,81 +1,65 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatVND } from '@/lib/utils'
 import ShoeSvg from './ShoeSvg'
+import { ArrowRightIcon, HeartIcon } from './Icons'
 
 export default function ProductCard({ product, isWishlisted = false, onWishlistToggle }) {
   const router = useRouter()
-
   const displayPrice = product.sale_price || product.price
   const hasSale = Boolean(product.sale_price)
 
-  async function handleWishlist(e) {
-    e.preventDefault()
-    if (onWishlistToggle) {
-      onWishlistToggle(product.id)
-    } else {
-      router.push('/login')
-    }
+  function handleWishlist() {
+    if (onWishlistToggle) onWishlistToggle(product.id)
+    else router.push('/login')
   }
 
   return (
-    <Link
-      href={`/product/${product.slug}`}
-      className="group relative bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden border border-gray-100"
-    >
-      {/* Image */}
-      <div
-        className="aspect-square flex items-center justify-center overflow-hidden"
-        style={{ backgroundColor: product.image_url ? '#f5f5f5' : `${product.accent || '#e8642a'}18` }}
-      >
-        {product.image_url ? (
-          <img
-            src={product.image_url}
-            alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-        ) : (
-          <ShoeSvg className="w-32 h-32 group-hover:scale-110 transition-transform duration-300" color={product.accent || '#e8642a'} />
-        )}
-      </div>
+    <article className="group relative overflow-hidden rounded-[18px] border border-[#e5e7ea] bg-white shadow-[0_8px_28px_rgba(20,23,28,.055)] transition duration-500 hover:-translate-y-1.5 hover:border-primary/25 hover:shadow-[0_20px_45px_rgba(20,23,28,.13)]">
+      <Link href={`/product/${product.slug}`} className="block" aria-label={`Xem ${product.name}`}>
+        <div className="relative aspect-[1.48/1] overflow-hidden bg-[radial-gradient(circle_at_75%_20%,#fff_0%,#f5f6f7_55%,#eceef0_100%)]">
+          <div className="absolute inset-x-6 bottom-[14%] h-3 rounded-[100%] bg-black/8 blur-md transition duration-500 group-hover:scale-110" />
+          {product.image_url ? (
+            <Image
+              src={product.image_url}
+              alt={product.name}
+              fill
+              sizes="(max-width: 420px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              className="object-contain p-4 transition duration-700 ease-out group-hover:scale-[1.08] group-hover:-rotate-1"
+            />
+          ) : (
+            <ShoeSvg className="absolute inset-x-[7%] top-[8%] h-[82%] w-[86%] transition duration-700 ease-out group-hover:scale-[1.08] group-hover:-rotate-1" color={product.accent || '#e8642a'} brand={product.brand} />
+          )}
 
-      {/* Badges */}
-      <div className="absolute top-3 left-3 flex flex-col gap-1">
-        {product.featured && (
-          <span className="bg-primary text-white text-xs px-2 py-0.5 rounded-full font-medium shadow-sm">Nổi bật</span>
-        )}
-        {hasSale && (
-          <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-medium shadow-sm">SALE</span>
-        )}
-        {product.best_seller && !product.featured && (
-          <span className="bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full font-medium shadow-sm">Bán chạy</span>
-        )}
-      </div>
+          <div className="absolute left-3 top-3 flex flex-wrap gap-1.5 pr-12">
+            {product.featured && <span className="rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold text-white shadow-[0_4px_10px_rgba(242,106,46,.28)]">Nổi bật</span>}
+            {hasSale && <span className="rounded-full bg-[#ff3347] px-2.5 py-1 text-[10px] font-bold text-white">SALE</span>}
+            {product.best_seller && !product.featured && <span className="rounded-full bg-[#ff9f1c] px-2.5 py-1 text-[10px] font-bold text-white">Bán chạy</span>}
+          </div>
+        </div>
 
-      {/* Wishlist */}
+        <div className="p-4 pt-3.5">
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-[.08em] text-gray-400">{product.brand}</p>
+          <h3 className="line-clamp-1 text-[14px] font-bold text-sole-dark transition-colors group-hover:text-primary-deep">{product.name}</h3>
+          <div className="mt-2.5 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <span className="text-[15px] font-black text-[#ff4b24]">{formatVND(displayPrice)}</span>
+            {hasSale && <span className="text-[11px] text-gray-400 line-through">{formatVND(product.price)}</span>}
+          </div>
+          <span className="mt-3 inline-flex items-center gap-1 text-[11px] font-bold text-gray-400 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:text-primary group-hover:opacity-100">Xem chi tiết <ArrowRightIcon className="size-3.5" /></span>
+        </div>
+      </Link>
+
       <button
+        type="button"
         onClick={handleWishlist}
-        className="absolute top-3 right-3 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-sm transition-all hover:scale-110"
+        className={`absolute right-3 top-3 z-10 grid size-8 place-items-center rounded-full border border-black/5 bg-white/92 shadow-sm backdrop-blur transition hover:scale-110 hover:border-primary/25 hover:text-primary ${isWishlisted ? 'text-[#ff4058]' : 'text-gray-400'}`}
         aria-label={isWishlisted ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'}
       >
-        <span className="text-sm">{isWishlisted ? '❤️' : '🤍'}</span>
+        <HeartIcon className="size-[15px]" filled={isWishlisted} />
       </button>
-
-      {/* Info */}
-      <div className="p-4">
-        <p className="text-xs text-gray-400 uppercase tracking-wide mb-1 font-medium">{product.brand}</p>
-        <h3 className="text-sm font-semibold text-sole-dark group-hover:text-primary transition-colors line-clamp-2 mb-2 leading-snug">
-          {product.name}
-        </h3>
-        <div className="flex items-center gap-2">
-          <span className="text-primary font-bold">{formatVND(displayPrice)}</span>
-          {hasSale && (
-            <span className="text-gray-400 text-xs line-through">{formatVND(product.price)}</span>
-          )}
-        </div>
-      </div>
-    </Link>
+    </article>
   )
 }

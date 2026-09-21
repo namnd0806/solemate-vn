@@ -5,6 +5,8 @@ import { formatVND } from '@/lib/utils'
 import Link from 'next/link'
 import Toast from '@/components/store/Toast'
 import { useState } from 'react'
+import ShoeSvg from '@/components/store/ShoeSvg'
+import { CartIcon } from '@/components/store/Icons'
 
 export default function CartPage() {
   const { items, count, total, removeItem, updateQty, clearCart } = useCart()
@@ -17,11 +19,11 @@ export default function CartPage() {
 
   if (count === 0) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-24 text-center">
-        <p className="text-6xl mb-6">🛒</p>
+      <div className="store-container py-24 text-center">
+        <div className="mx-auto mb-6 grid size-20 place-items-center rounded-full bg-primary/10 text-primary"><CartIcon className="size-9" /></div>
         <h1 className="text-2xl font-bold text-sole-dark mb-3">Giỏ hàng trống</h1>
         <p className="text-gray-400 mb-8">Thêm sản phẩm vào giỏ để tiếp tục mua sắm.</p>
-        <Link href="/products" className="bg-primary text-white px-8 py-3 rounded-full font-semibold hover:bg-orange-600 transition-colors">
+        <Link href="/products" className="btn-primary">
           Khám phá sản phẩm
         </Link>
       </div>
@@ -29,13 +31,14 @@ export default function CartPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-10">
+    <div className="store-container py-10 lg:py-14">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-      <h1 className="text-2xl font-bold text-sole-dark mb-8">Giỏ hàng ({count} sản phẩm)</h1>
+      <span className="section-kicker">Your selection</span>
+      <h1 className="section-title mb-8 mt-1.5">Giỏ hàng <span className="text-base font-medium text-gray-400">({count} sản phẩm)</span></h1>
       <div className="space-y-4 mb-8">
         {items.map(item => (
-          <div key={item.sku} className="flex gap-4 bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-            <div className="w-20 h-20 bg-sole-gray rounded-lg flex items-center justify-center text-2xl flex-shrink-0">👟</div>
+          <div key={item.sku} className="surface-card flex gap-4 p-4 transition hover:-translate-y-0.5 hover:shadow-md">
+            <div className="flex size-24 shrink-0 items-center justify-center rounded-2xl bg-sole-gray"><ShoeSvg className="h-20 w-24" color="#e8642a" brand={item.brand} /></div>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-sole-dark truncate">{item.name}</p>
               <p className="text-xs text-gray-400 mt-0.5">{item.brand} · {item.color} · Size {item.size} · SKU: {item.sku}</p>
@@ -52,16 +55,16 @@ export default function CartPage() {
           </div>
         ))}
       </div>
-      <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+      <div className="surface-card p-6">
         <div className="flex justify-between items-center mb-4">
           <span className="text-gray-600">Tổng tạm tính</span>
           <span className="text-xl font-bold text-primary">{formatVND(total)}</span>
         </div>
         <div className="flex gap-3">
-          <button onClick={clearCart} className="flex-1 border border-gray-300 rounded-full py-3 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+          <button onClick={clearCart} className="btn-secondary flex-1 text-sm">
             Xoá giỏ hàng
           </button>
-          <Link href="/checkout" className="flex-1 bg-primary text-white rounded-full py-3 text-sm font-semibold text-center hover:bg-orange-600 transition-colors">
+          <Link href="/checkout" className="btn-primary flex-1 text-sm">
             Tiến hành thanh toán
           </Link>
         </div>

@@ -4,6 +4,7 @@ import { getUserById } from '@/lib/db/users'
 import { CartProvider } from '@/contexts/CartContext'
 import Header from '@/components/store/Header'
 import Footer from '@/components/store/Footer'
+import StoreEffects from '@/components/store/StoreEffects'
 
 export default async function StoreLayout({ children }) {
   let user = null
@@ -21,9 +22,10 @@ export default async function StoreLayout({ children }) {
 
   return (
     <CartProvider>
-      <div className="min-h-screen flex flex-col">
+      <div className="store-shell flex flex-col">
+        <StoreEffects />
         <Header user={user} />
-        <main className="flex-1">{children}</main>
+        <main className="store-main flex-1">{children}</main>
         <Footer />
       </div>
     </CartProvider>

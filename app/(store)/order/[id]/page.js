@@ -7,6 +7,7 @@ import ConfirmModal from '@/components/store/ConfirmModal'
 import Toast from '@/components/store/Toast'
 import Link from 'next/link'
 import { Suspense } from 'react'
+import { ArrowRightIcon, BoxIcon, CheckIcon, PhoneIcon, PinIcon, TruckIcon } from '@/components/store/Icons'
 
 const STATUS_LABELS = { PENDING:'Chờ xác nhận', CONFIRMED:'Đã xác nhận', SHIPPING:'Đang giao', DELIVERED:'Đã giao', CANCELLED:'Đã hủy' }
 const STATUS_COLORS = {
@@ -55,9 +56,9 @@ function OrderDetailContent() {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-32 flex items-center justify-center">
+      <div className="mx-auto flex min-h-[62vh] max-w-3xl items-center justify-center px-4 py-32">
         <div className="text-center">
-          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="mx-auto mb-4 size-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
           <p className="text-gray-400">Đang tải đơn hàng...</p>
         </div>
       </div>
@@ -67,24 +68,24 @@ function OrderDetailContent() {
   // Order not found — show friendly message with order ID
   if (!order) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-20 text-center">
+      <div className="mx-auto min-h-[62vh] max-w-2xl px-4 py-16 text-center">
         {isNew && (
-          <div className="mb-8 p-6 bg-emerald-50 border border-emerald-200 rounded-2xl">
-            <div className="text-5xl mb-3">🎉</div>
+          <div className="mb-8 rounded-[22px] border border-emerald-200 bg-emerald-50 p-7">
+            <div className="mx-auto mb-4 grid size-14 place-items-center rounded-full bg-emerald-500 text-white"><CheckIcon className="size-7" /></div>
             <h2 className="text-xl font-bold text-emerald-700 mb-2">Đặt hàng thành công!</h2>
             <p className="text-emerald-600 text-sm mb-3">Mã đơn hàng của bạn: <strong className="font-mono">{id}</strong></p>
             <p className="text-emerald-600 text-sm">Chúng tôi sẽ liên hệ xác nhận qua số điện thoại bạn đã cung cấp.</p>
           </div>
         )}
-        <p className="text-gray-400 mb-4">Để xem chi tiết đơn hàng, vui lòng đăng nhập hoặc dùng chức năng tra cứu.</p>
-        <div className="flex gap-3 justify-center">
+        <div className="surface-card px-6 py-10"><div className="mx-auto mb-4 grid size-16 place-items-center rounded-full bg-primary/8 text-primary"><BoxIcon className="size-8" /></div><h1 className="text-xl font-black text-sole-dark">Chưa thể hiển thị chi tiết đơn</h1><p className="mx-auto mb-6 mt-2 max-w-md text-sm leading-6 text-gray-500">Vui lòng đăng nhập hoặc dùng chức năng tra cứu với mã đơn và số điện thoại.</p>
+        <div className="flex flex-wrap justify-center gap-3">
           <Link href="/track-order" className="px-6 py-2.5 bg-primary text-white rounded-full text-sm font-semibold hover:bg-orange-600 transition-colors">
             Tra cứu đơn hàng
           </Link>
-          <Link href="/" className="px-6 py-2.5 border border-gray-200 text-gray-600 rounded-full text-sm hover:bg-gray-50 transition-colors">
+          <Link href="/" className="rounded-full border border-gray-200 px-6 py-2.5 text-sm text-gray-600 transition-colors hover:bg-gray-50">
             Về trang chủ
           </Link>
-        </div>
+        </div></div>
       </div>
     )
   }
@@ -92,7 +93,7 @@ function OrderDetailContent() {
   const canCancel = ['PENDING', 'CONFIRMED'].includes(order.status)
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-10">
+    <main className="mx-auto min-h-[62vh] max-w-4xl px-4 py-10 sm:py-14">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       {showCancel && (
         <ConfirmModal
@@ -106,16 +107,17 @@ function OrderDetailContent() {
 
       {/* Success banner for new orders */}
       {isNew && (
-        <div className="mb-6 p-5 bg-emerald-50 border border-emerald-200 rounded-2xl text-center">
-          <div className="text-4xl mb-2">🎉</div>
+        <div className="mb-6 rounded-[22px] border border-emerald-200 bg-emerald-50 p-6 text-center" data-reveal>
+          <div className="mx-auto mb-3 grid size-12 place-items-center rounded-full bg-emerald-500 text-white"><CheckIcon className="size-6" /></div>
           <h2 className="text-lg font-bold text-emerald-700 mb-1">Đặt hàng thành công!</h2>
           <p className="text-emerald-600 text-sm">Cảm ơn bạn đã mua sắm tại SoleMate VN</p>
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-7 flex flex-wrap items-start justify-between gap-4" data-reveal>
         <div>
-          <h1 className="text-xl font-bold text-sole-dark">Đơn hàng #{order.id}</h1>
+          <p className="section-kicker">Chi tiết đơn hàng</p>
+          <h1 className="mt-1.5 text-2xl font-black text-sole-dark sm:text-3xl">Đơn hàng #{order.id}</h1>
           <p className="text-sm text-gray-400 mt-1">{new Date(order.created_at).toLocaleString('vi-VN')}</p>
         </div>
         <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${STATUS_COLORS[order.status] || ''}`}>
@@ -124,52 +126,43 @@ function OrderDetailContent() {
       </div>
 
       {/* Delivery info */}
-      <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm mb-4">
-        <h2 className="font-semibold text-sole-dark mb-3">Thông tin giao hàng</h2>
-        <div className="text-sm space-y-1 text-gray-600">
+      <div className="mb-5 grid gap-5 md:grid-cols-[1fr_.86fr]" data-reveal>
+      <section className="rounded-[20px] border border-gray-200 bg-white p-6 shadow-[0_10px_35px_rgba(20,23,28,.055)]">
+        <div className="mb-4 flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary"><PinIcon /></span><h2 className="font-bold text-sole-dark">Thông tin giao hàng</h2></div>
+        <div className="space-y-2 text-sm text-gray-600">
           <p className="font-medium text-sole-dark">{order.contact?.fullName}</p>
-          <p>📞 {order.contact?.phone}</p>
-          <p>📍 {order.contact?.address}, {order.contact?.ward}, {order.contact?.district}, {order.contact?.province}</p>
-          {order.tracking && <p className="text-primary font-medium">🚚 Mã vận đơn: {order.tracking}</p>}
+          <p className="flex items-center gap-2"><PhoneIcon className="size-4 text-gray-400" /> {order.contact?.phone}</p>
+          <p className="flex items-start gap-2"><PinIcon className="mt-0.5 size-4 shrink-0 text-gray-400" /> <span>{order.contact?.address}, {order.contact?.ward}, {order.contact?.district}, {order.contact?.province}</span></p>
+          {order.tracking && <p className="flex items-center gap-2 font-bold text-primary"><TruckIcon className="size-4" /> Mã vận đơn: {order.tracking}</p>}
         </div>
+      </section>
+
+      <section className="rounded-[20px] bg-sole-dark p-6 text-white shadow-[0_16px_40px_rgba(20,23,28,.16)]">
+        <div className="mb-5 flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-white/10 text-primary-light"><BoxIcon /></span><h2 className="font-bold">Tổng quan thanh toán</h2></div>
+        <div className="space-y-3 text-sm text-white/65">
+          <div className="flex justify-between"><span>Tạm tính</span><span className="text-white">{formatVND(order.subtotal)}</span></div>
+          {order.discount > 0 && <div className="flex justify-between text-emerald-400"><span>Giảm giá {order.promo_code && `(${order.promo_code})`}</span><span>−{formatVND(order.discount)}</span></div>}
+          <div className="flex justify-between"><span>Phí vận chuyển</span><span className="text-white">{order.shipping_fee === 0 ? 'Miễn phí' : formatVND(order.shipping_fee)}</span></div>
+          <div className="flex justify-between border-t border-white/10 pt-4 text-base font-black text-white"><span>Tổng cộng</span><span className="text-primary-light">{formatVND(order.total)}</span></div>
+        </div>
+      </section>
       </div>
 
       {/* Items */}
-      <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm mb-4">
-        <h2 className="font-semibold text-sole-dark mb-4">Sản phẩm</h2>
-        <div className="space-y-3">
+      <section className="mb-6 rounded-[20px] border border-gray-200 bg-white p-6 shadow-[0_10px_35px_rgba(20,23,28,.055)]" data-reveal>
+        <h2 className="mb-5 font-bold text-sole-dark">Sản phẩm trong đơn</h2>
+        <div className="divide-y divide-gray-100">
           {order.order_items?.map(item => (
-            <div key={item.id} className="flex justify-between text-sm">
-              <div>
+            <div key={item.id} className="flex justify-between gap-4 py-4 first:pt-0 last:pb-0 text-sm">
+              <div className="flex gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-gray-100 text-gray-500"><BoxIcon className="size-5" /></span><div>
                 <p className="font-medium text-sole-dark">{item.name}</p>
                 <p className="text-gray-400 text-xs">{item.brand} · {item.color} · Size {item.size} · x{item.qty}</p>
-              </div>
+              </div></div>
               <p className="font-semibold text-primary whitespace-nowrap ml-4">{formatVND(item.line_total)}</p>
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Summary */}
-      <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm mb-6">
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between"><span className="text-gray-600">Tạm tính</span><span>{formatVND(order.subtotal)}</span></div>
-          {order.discount > 0 && (
-            <div className="flex justify-between text-green-600">
-              <span>Giảm giá {order.promo_code && `(${order.promo_code})`}</span>
-              <span>−{formatVND(order.discount)}</span>
-            </div>
-          )}
-          <div className="flex justify-between">
-            <span className="text-gray-600">Phí vận chuyển</span>
-            <span>{order.shipping_fee === 0 ? 'Miễn phí' : formatVND(order.shipping_fee)}</span>
-          </div>
-          <div className="flex justify-between font-bold text-base border-t pt-2">
-            <span>Tổng cộng</span>
-            <span className="text-primary">{formatVND(order.total)}</span>
-          </div>
-        </div>
-      </div>
+      </section>
 
       <div className="flex gap-3">
         {canCancel && (
@@ -178,11 +171,11 @@ function OrderDetailContent() {
             Hủy đơn hàng
           </button>
         )}
-        <Link href="/" className="flex-1 bg-primary text-white rounded-full py-3 font-semibold text-center hover:bg-orange-600 transition-colors">
-          Tiếp tục mua sắm
+        <Link href="/" className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-primary py-3 font-semibold text-white transition-colors hover:bg-primary-deep">
+          Tiếp tục mua sắm <ArrowRightIcon />
         </Link>
       </div>
-    </div>
+    </main>
   )
 }
 

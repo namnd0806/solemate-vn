@@ -12,14 +12,24 @@ const dmSans = DM_Sans({
 });
 
 export const metadata = {
-  title: "SoleMate VN",
-  description: "Website bán giày thể thao SoleMate VN",
+  metadataBase: new URL("https://solemate-vn.vercel.app"),
+  title: {
+    default: "SoleMate VN – Giày thể thao chính hãng",
+    template: "%s | SoleMate VN",
+  },
+  description: "Khám phá giày thể thao chính hãng từ Nike, Adidas, New Balance và nhiều thương hiệu hàng đầu tại SoleMate VN.",
+  openGraph: {
+    title: "SoleMate VN – More Than Sneakers",
+    description: "Giày thể thao chính hãng, giao nhanh toàn quốc và đổi trả dễ dàng.",
+    locale: "vi_VN",
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="vi" className={`${inter.variable} ${dmSans.variable}`}>
-      <body>{children}</body>
+      <body className="bg-sole-gray text-sole-dark antialiased">{children}</body>
     </html>
   );
 }

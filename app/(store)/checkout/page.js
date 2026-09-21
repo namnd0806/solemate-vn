@@ -70,34 +70,35 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-10">
+    <div className="store-container py-10 lg:py-14">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-      <h1 className="text-2xl font-bold text-sole-dark mb-8">Thanh toán</h1>
+      <span className="section-kicker">Secure checkout</span>
+      <h1 className="section-title mb-8 mt-1.5">Thanh toán</h1>
       <form onSubmit={handleSubmit} className="grid md:grid-cols-3 gap-8">
         <div className="md:col-span-2 space-y-6">
           {/* Contact */}
-          <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+          <div className="surface-card p-6">
             <h2 className="font-semibold text-sole-dark mb-4">Thông tin giao hàng</h2>
             <div className="grid grid-cols-2 gap-4">
               {[['fullName','Họ tên *','text',true],['phone','Số điện thoại *','tel',true],['email','Email','email',false],['province','Tỉnh/Thành *','text',true],['district','Quận/Huyện *','text',true],['ward','Phường/Xã *','text',true]].map(([key,label,type,req]) => (
                 <div key={key} className={key === 'fullName' || key === 'address' ? 'col-span-2' : ''}>
                   <label className="block text-sm text-gray-600 mb-1">{label}</label>
-                  <input type={type} required={req} value={contact[key]} onChange={e => setContact(p => ({...p,[key]:e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+                  <input type={type} required={req} value={contact[key]} onChange={e => setContact(p => ({...p,[key]:e.target.value}))} className="form-field" />
                 </div>
               ))}
               <div className="col-span-2">
                 <label className="block text-sm text-gray-600 mb-1">Địa chỉ *</label>
-                <input required value={contact.address} onChange={e => setContact(p => ({...p,address:e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" placeholder="Số nhà, tên đường..." />
+                <input required value={contact.address} onChange={e => setContact(p => ({...p,address:e.target.value}))} className="form-field" placeholder="Số nhà, tên đường..." />
               </div>
               <div className="col-span-2">
                 <label className="block text-sm text-gray-600 mb-1">Ghi chú</label>
-                <textarea value={note} onChange={e => setNote(e.target.value)} rows={2} className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary resize-none" />
+                <textarea value={note} onChange={e => setNote(e.target.value)} rows={2} className="form-field min-h-20 resize-none py-3" />
               </div>
             </div>
           </div>
 
           {/* Shipping & Payment */}
-          <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+          <div className="surface-card p-6">
             <h2 className="font-semibold text-sole-dark mb-4">Vận chuyển & Thanh toán</h2>
             <div className="space-y-3">
               {[['STANDARD','Giao hàng tiêu chuẩn (30.000₫)'],['EXPRESS','Giao hàng nhanh (50.000₫)']].map(([v,l]) => (
@@ -120,7 +121,7 @@ export default function CheckoutPage() {
 
         {/* Summary */}
         <div className="space-y-4">
-          <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+          <div className="surface-card p-5">
             <h2 className="font-semibold text-sole-dark mb-4">Đơn hàng ({items.length} sản phẩm)</h2>
             <div className="space-y-3 mb-4">
               {items.map(i => (
@@ -132,7 +133,7 @@ export default function CheckoutPage() {
             </div>
             {/* Promo */}
             <div className="flex gap-2 mb-4">
-              <input value={promoCode} onChange={e => setPromoCode(e.target.value)} placeholder="Mã giảm giá" className="flex-1 border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+              <input value={promoCode} onChange={e => setPromoCode(e.target.value)} placeholder="Mã giảm giá" className="form-field min-w-0 flex-1" />
               <button type="button" onClick={applyPromo} className="px-3 bg-primary text-white rounded-lg text-sm hover:bg-orange-600">Áp dụng</button>
             </div>
             {promoMsg && <p className="text-xs mb-3">{promoMsg}</p>}
@@ -145,7 +146,7 @@ export default function CheckoutPage() {
               </div>
             </div>
           </div>
-          <button type="submit" disabled={submitting} className="w-full bg-primary text-white rounded-full py-3 font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50">
+          <button type="submit" disabled={submitting} className="btn-primary w-full disabled:opacity-50">
             {submitting ? 'Đang đặt...' : 'Đặt hàng'}
           </button>
         </div>
