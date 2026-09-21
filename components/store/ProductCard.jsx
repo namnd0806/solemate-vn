@@ -20,15 +20,14 @@ export default function ProductCard({ product, isWishlisted = false, onWishlistT
   return (
     <article className="group relative overflow-hidden rounded-[18px] border border-[#e5e7ea] bg-white shadow-[0_8px_28px_rgba(20,23,28,.055)] transition duration-500 hover:-translate-y-1.5 hover:border-primary/25 hover:shadow-[0_20px_45px_rgba(20,23,28,.13)]">
       <Link href={`/product/${product.slug}`} className="block" aria-label={`Xem ${product.name}`}>
-        <div className="relative aspect-[1.48/1] overflow-hidden bg-[radial-gradient(circle_at_75%_20%,#fff_0%,#f5f6f7_55%,#eceef0_100%)]">
-          <div className="absolute inset-x-6 bottom-[14%] h-3 rounded-[100%] bg-black/8 blur-md transition duration-500 group-hover:scale-110" />
+        <div className="relative aspect-[1.32/1] overflow-hidden bg-[#eceeef]">
           {product.image_url ? (
             <Image
               src={product.image_url}
               alt={product.name}
               fill
               sizes="(max-width: 420px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className="object-contain p-4 transition duration-700 ease-out group-hover:scale-[1.08] group-hover:-rotate-1"
+              className="object-cover object-center transition duration-700 ease-out group-hover:scale-[1.055]"
             />
           ) : (
             <ShoeSvg className="absolute inset-x-[7%] top-[8%] h-[82%] w-[86%] transition duration-700 ease-out group-hover:scale-[1.08] group-hover:-rotate-1" color={product.accent || '#e8642a'} brand={product.brand} />
@@ -41,7 +40,7 @@ export default function ProductCard({ product, isWishlisted = false, onWishlistT
           </div>
         </div>
 
-        <div className="p-4 pt-3.5">
+        <div className="min-h-[132px] p-4 pt-3.5">
           <p className="mb-1 text-[10px] font-bold uppercase tracking-[.08em] text-gray-400">{product.brand}</p>
           <h3 className="line-clamp-1 text-[14px] font-bold text-sole-dark transition-colors group-hover:text-primary-deep">{product.name}</h3>
           <div className="mt-2.5 flex flex-wrap items-baseline gap-x-2 gap-y-1">
