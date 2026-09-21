@@ -20,27 +20,60 @@ export default function PDPPage() {
   const [selectedVariant, setSelectedVariant] = useState(null)
   const [toast, setToast] = useState(null)
   const [adding, setAdding] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     let active = true
-    fetch(`/api/products/${slug}`)
-      .then(response => response.json())
-      .then(({ ok, data }) => {
-        if (!active) return
-        if (ok) {
-          const firstVariant = data.variants.find(variant => variant.status === 'ACTIVE') || null
-          setProduct(data)
-          setSelectedColor(firstVariant?.color || null)
-          setSelectedVariant(firstVariant)
+    const controller = new AbortController()
+    queueMicrotask(() => {
+      if (!active) return
+      setLoading(true)
+      setError('')
+    })
+
+    fetch(`/api/products/${encodeURIComponent(slug)}`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    })
+      .then(async response => {
+        const payload = await response.json().catch(() => null)
+        if (!response.ok || !payload?.ok || !payload?.data) {
+          throw new Error(payload?.message || 'Không thể tải thông tin sản phẩm.')
         }
+        return payload.data
+      })
+      .then(data => {
+        if (!active) return
+        const variants = Array.isArray(data.variants) ? data.variants : []
+        const normalizedProduct = { ...data, variants }
+        const firstVariant = variants.find(variant => variant.status === 'ACTIVE') || null
+        setProduct(normalizedProduct)
+        setSelectedColor(firstVariant?.color || null)
+        setSelectedVariant(firstVariant)
         setLoading(false)
       })
-      .catch(() => active && setLoading(false))
-    return () => { active = false }
+      .catch(err => {
+        if (!active || err.name === 'AbortError') return
+        setError(err.message || 'Không thể tải thông tin sản phẩm.')
+        setLoading(false)
+      })
+    return () => {
+      active = false
+      controller.abort()
+    }
   }, [slug])
 
   if (loading) return <ProductLoading />
-  if (!product) return <div className="store-container py-32 text-center text-gray-400">Không tìm thấy sản phẩm.</div>
+  if (!product) return (
+    <div className="store-container py-28 text-center">
+      <p className="text-lg font-bold text-sole-dark">Không thể hiển thị sản phẩm</p>
+      <p className="mt-2 text-sm text-gray-500">{error || 'Không tìm thấy sản phẩm.'}</p>
+      <div className="mt-6 flex justify-center gap-3">
+        <button type="button" onClick={() => window.location.reload()} className="btn-primary">Thử lại</button>
+        <Link href="/products" className="btn-secondary">Xem sản phẩm khác</Link>
+      </div>
+    </div>
+  )
 
   const activeVariants = product.variants.filter(variant => variant.status === 'ACTIVE')
   const colors = [...new Set(activeVariants.map(variant => variant.color))]
