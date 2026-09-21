@@ -59,8 +59,7 @@ export default function Header({ user }) {
               type="search"
               value={search}
               onChange={event => setSearch(event.target.value)}
-              placeholder="Tìm kiếm giày, thương hiệu..."
-              className="min-w-0 flex-1 bg-transparent px-4 text-[13px] text-white outline-none placeholder:text-white/40"
+              className="min-w-0 flex-1 bg-transparent px-4 text-[13px] text-white outline-none"
               aria-label="Tìm kiếm sản phẩm"
             />
             <button type="submit" className="grid w-11 place-items-center bg-primary transition hover:bg-[#ff7c42]" aria-label="Tìm kiếm">
@@ -132,7 +131,7 @@ export default function Header({ user }) {
       {mobileOpen && (
         <div className="border-t border-white/8 bg-[#121416] px-3 pb-5 pt-4 shadow-2xl xl:hidden">
           <form onSubmit={handleSearch} className="mx-auto mb-4 flex h-11 max-w-2xl overflow-hidden rounded-xl border border-white/15 bg-white/8 md:hidden">
-            <input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Tìm kiếm sản phẩm..." className="min-w-0 flex-1 bg-transparent px-4 text-sm outline-none placeholder:text-white/40" aria-label="Tìm kiếm sản phẩm" />
+            <input type="search" value={search} onChange={event => setSearch(event.target.value)} className="min-w-0 flex-1 bg-transparent px-4 text-sm outline-none" aria-label="Tìm kiếm sản phẩm" />
             <button type="submit" className="grid w-12 place-items-center bg-primary" aria-label="Tìm kiếm"><SearchIcon /></button>
           </form>
           <nav className="mx-auto grid max-w-2xl grid-cols-2 gap-1" aria-label="Điều hướng di động">
