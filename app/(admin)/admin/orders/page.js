@@ -19,7 +19,7 @@ const TRANSITIONS = {
   CANCELLED: [],
 }
 
-const PAYMENT_METHODS = { COD: '💵 COD', BANK: '🏦 Chuyển khoản', MOMO: '💜 MoMo' }
+const PAYMENT_METHODS = { COD: '💵 COD', BANK: '🏦 QR ngân hàng', VISA: '💳 Visa', MOMO: '💜 MoMo' }
 
 function StatusBadge({ status }) {
   const c = STATUS_CONFIG[status] || {}

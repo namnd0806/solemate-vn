@@ -8,6 +8,74 @@ import { formatVND } from '@/lib/utils'
 import Toast from '@/components/store/Toast'
 
 const PROVINCES = ['Hà Nội', 'TP. Hồ Chí Minh', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ', 'Khác']
+const SHIPPING_OPTIONS = [
+  {
+    value: 'STANDARD',
+    title: 'Giao hàng tiêu chuẩn',
+    subtitle: 'Nhận hàng trong 2-4 ngày',
+    price: '30.000đ',
+  },
+  {
+    value: 'EXPRESS',
+    title: 'Giao hàng nhanh',
+    subtitle: 'Ưu tiên xử lý và giao nhanh',
+    price: '50.000đ',
+  },
+]
+
+const PAYMENT_OPTIONS = [
+  {
+    value: 'COD',
+    title: 'Thanh toán khi nhận hàng',
+    subtitle: 'Kiểm tra hàng rồi thanh toán cho shipper',
+    badge: 'COD',
+  },
+  {
+    value: 'BANK',
+    title: 'QR chuyển khoản ngân hàng',
+    subtitle: 'Giả lập thanh toán QR, đơn được ghi nhận đã thanh toán',
+    badge: 'QR',
+  },
+  {
+    value: 'VISA',
+    title: 'Thẻ Visa',
+    subtitle: 'Giả lập thanh toán thẻ, không thu tiền thật',
+    badge: 'VISA',
+  },
+]
+
+function PaymentIcon({ type }) {
+  if (type === 'BANK') {
+    return (
+      <div className="relative grid size-11 place-items-center rounded-2xl bg-sky-50 text-sky-600 ring-1 ring-sky-100">
+        <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M4 8.5 12 4l8 4.5" />
+          <path d="M5.5 10h13" />
+          <path d="M7 10v7M11 10v7M15 10v7M19 10v7" />
+          <path d="M5 19h14" />
+        </svg>
+        <span className="absolute -right-1 -top-1 rounded-md bg-sky-600 px-1.5 py-0.5 text-[9px] font-black text-white">QR</span>
+      </div>
+    )
+  }
+  if (type === 'VISA') {
+    return (
+      <div className="grid size-11 place-items-center rounded-2xl bg-[linear-gradient(135deg,#102a6b,#2563eb)] text-white shadow-[0_14px_32px_rgba(37,99,235,.22)]">
+        <span className="text-[12px] font-black italic tracking-tight">VISA</span>
+      </div>
+    )
+  }
+  return (
+    <div className="grid size-11 place-items-center rounded-2xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100">
+      <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M4 7h16v10H4z" />
+        <path d="M7 10h4" />
+        <path d="M17 14h.01" />
+        <path d="M15 14h.01" />
+      </svg>
+    </div>
+  )
+}
 
 export default function CheckoutPage() {
   const router = useRouter()
@@ -58,6 +126,7 @@ export default function CheckoutPage() {
         })),
         shippingMethod: shipping,
         paymentMethod: payment,
+        paymentConfirmed: payment !== 'COD',
         promoCode: discount > 0 ? promoCode : '',
         note,
       }
@@ -107,21 +176,45 @@ export default function CheckoutPage() {
               <span className="grid size-9 place-items-center rounded-full bg-primary text-sm font-black text-white">2</span>
               <div><h2 className="font-bold text-sole-dark">Vận chuyển & Thanh toán</h2><p className="text-xs text-gray-400">Chọn phương thức phù hợp với bạn</p></div>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {[['STANDARD','Giao hàng tiêu chuẩn (30.000₫)'],['EXPRESS','Giao hàng nhanh (50.000₫)']].map(([v,l]) => (
-                <label key={v} className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 transition ${shipping===v ? 'border-primary bg-primary/5 ring-2 ring-primary/10' : 'border-gray-200 hover:border-primary/40'}`}>
-                  <input type="radio" name="shipping" value={v} checked={shipping===v} onChange={()=>setShipping(v)} />
-                  <span className="text-sm font-semibold">{l}</span>
-                </label>
-              ))}
-              <div className="col-span-full mt-2 grid gap-3 border-t border-gray-100 pt-5 sm:grid-cols-3">
-                {[['COD','Tiền mặt khi nhận hàng'],['BANK','Chuyển khoản ngân hàng'],['MOMO','Ví MoMo']].map(([v,l]) => (
-                  <label key={v} className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 transition ${payment===v ? 'border-primary bg-primary/5 ring-2 ring-primary/10' : 'border-gray-200 hover:border-primary/40'}`}>
-                    <input type="radio" name="payment" value={v} checked={payment===v} onChange={()=>setPayment(v)} />
-                    <span className="text-sm font-semibold">{l}</span>
+            <div className="grid gap-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {SHIPPING_OPTIONS.map(option => (
+                  <label key={option.value} className={`group relative flex cursor-pointer items-center gap-4 overflow-hidden rounded-2xl border p-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_45px_rgba(15,23,42,.08)] ${shipping===option.value ? 'border-primary bg-primary/5 ring-2 ring-primary/10' : 'border-gray-200 hover:border-primary/40'}`}>
+                    <input className="sr-only" type="radio" name="shipping" value={option.value} checked={shipping===option.value} onChange={()=>setShipping(option.value)} />
+                    <span className={`grid size-5 shrink-0 place-items-center rounded-full border transition ${shipping===option.value ? 'border-primary bg-primary' : 'border-gray-300 group-hover:border-primary'}`}>
+                      {shipping===option.value && <span className="size-2 rounded-full bg-white" />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-black text-sole-dark">{option.title}</span>
+                      <span className="mt-1 block text-xs text-gray-400">{option.subtitle}</span>
+                    </span>
+                    <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-black text-sole-dark">{option.price}</span>
                   </label>
                 ))}
               </div>
+              <div className="grid gap-3 border-t border-gray-100 pt-5 sm:grid-cols-3">
+                {PAYMENT_OPTIONS.map(option => (
+                  <label key={option.value} className={`group relative flex cursor-pointer flex-col gap-4 overflow-hidden rounded-3xl border p-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_45px_rgba(15,23,42,.09)] ${payment===option.value ? 'border-primary bg-[linear-gradient(135deg,rgba(255,106,32,.10),rgba(255,255,255,.96))] ring-2 ring-primary/10' : 'border-gray-200 hover:border-primary/40'}`}>
+                    <input className="sr-only" type="radio" name="payment" value={option.value} checked={payment===option.value} onChange={()=>setPayment(option.value)} />
+                    <span className="flex items-start justify-between gap-3">
+                      <PaymentIcon type={option.value} />
+                      <span className={`grid size-5 place-items-center rounded-full border transition ${payment===option.value ? 'border-primary bg-primary' : 'border-gray-300 group-hover:border-primary'}`}>
+                        {payment===option.value && <span className="size-2 rounded-full bg-white" />}
+                      </span>
+                    </span>
+                    <span>
+                      <span className="block text-sm font-black text-sole-dark">{option.title}</span>
+                      <span className="mt-1 block text-xs leading-5 text-gray-400">{option.subtitle}</span>
+                    </span>
+                    <span className="mt-auto w-fit rounded-full bg-sole-dark px-2.5 py-1 text-[10px] font-black text-white">{option.badge}</span>
+                  </label>
+                ))}
+              </div>
+              {payment !== 'COD' && (
+                <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-4 text-xs leading-5 text-gray-600">
+                  <span className="font-bold text-sole-dark">Thanh toán giả lập:</span> hệ thống sẽ tạo đơn hàng và đánh dấu thanh toán thành công để bạn test luồng checkout, tồn kho vẫn được trừ bằng backend như đơn thật.
+                </div>
+              )}
             </div>
           </div>
         </div>

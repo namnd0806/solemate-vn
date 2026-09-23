@@ -87,7 +87,7 @@ CREATE TABLE orders (
   guest           BOOLEAN NOT NULL DEFAULT FALSE,
   status          TEXT NOT NULL DEFAULT 'PENDING'
                     CHECK (status IN ('PENDING','CONFIRMED','SHIPPING','DELIVERED','CANCELLED')),
-  payment_method  TEXT NOT NULL CHECK (payment_method IN ('COD','BANK','MOMO')),
+  payment_method  TEXT NOT NULL CHECK (payment_method IN ('COD','BANK','VISA','MOMO')),
   payment_status  TEXT NOT NULL DEFAULT 'UNPAID'
                     CHECK (payment_status IN ('UNPAID','PENDING','PAID','REFUND_PENDING')),
   shipping_method TEXT NOT NULL DEFAULT 'STANDARD' CHECK (shipping_method IN ('STANDARD','EXPRESS')),

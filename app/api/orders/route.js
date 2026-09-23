@@ -3,6 +3,9 @@ import { getOrders, createOrder } from '@/lib/db/orders'
 import { getAdminFromRequest, getCustomerFromRequest } from '@/lib/auth'
 import { validatePhone, generateOrderId } from '@/lib/utils'
 
+const PAYMENT_METHODS = new Set(['COD', 'BANK', 'VISA'])
+const SHIPPING_METHODS = new Set(['STANDARD', 'EXPRESS'])
+
 export async function GET(request) {
   try {
     const admin = await getAdminFromRequest(request)
@@ -25,7 +28,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json()
-    const { contact, items, shippingMethod, paymentMethod, promoCode, note } = body
+    const { contact, items, shippingMethod, paymentMethod, paymentConfirmed, promoCode, note } = body
 
     // Validate contact fields
     if (!contact?.fullName?.trim()) {
@@ -40,6 +43,12 @@ export async function POST(request) {
     if (!items || items.length === 0) {
       return NextResponse.json({ ok: false, message: 'Giỏ hàng trống.' }, { status: 400 })
     }
+    if (shippingMethod && !SHIPPING_METHODS.has(shippingMethod)) {
+      return NextResponse.json({ ok: false, message: 'Phương thức vận chuyển không hợp lệ.' }, { status: 400 })
+    }
+    if (paymentMethod && !PAYMENT_METHODS.has(paymentMethod)) {
+      return NextResponse.json({ ok: false, message: 'Phương thức thanh toán không hợp lệ.' }, { status: 400 })
+    }
 
     // Get customer if logged in
     const customer = await getCustomerFromRequest(request)
@@ -53,6 +62,7 @@ export async function POST(request) {
       items,
       shipping_method: shippingMethod || 'STANDARD',
       payment_method: paymentMethod || 'COD',
+      payment_confirmed: Boolean(paymentConfirmed),
       promo_code: promoCode || '',
       note: note || '',
     }
