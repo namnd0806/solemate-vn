@@ -44,6 +44,12 @@ const PAYMENT_OPTIONS = [
   },
 ]
 
+const BANK_TRANSFER = {
+  bank: 'Vietcombank',
+  accountName: 'CONG TY SOLEMATE VN',
+  accountNo: '1900 1234 8888',
+}
+
 function PaymentIcon({ type }) {
   if (type === 'BANK') {
     return (
@@ -83,6 +89,8 @@ export default function CheckoutPage() {
   const [contact, setContact] = useState({ fullName: '', phone: '', email: '', province: '', district: '', ward: '', address: '' })
   const [shipping, setShipping] = useState('STANDARD')
   const [payment, setPayment] = useState('COD')
+  const [bankConfirmed, setBankConfirmed] = useState(false)
+  const [card, setCard] = useState({ number: '', name: '', expiry: '', cvv: '' })
   const [promoCode, setPromoCode] = useState('')
   const [discount, setDiscount] = useState(0)
   const [promoMsg, setPromoMsg] = useState('')
@@ -95,6 +103,27 @@ export default function CheckoutPage() {
   const subtotal = total
   const shippingFee = shipping === 'EXPRESS' ? 50000 : subtotal - discount >= 499000 ? 0 : 30000
   const grandTotal = Math.max(0, subtotal - discount + shippingFee)
+  const bankContent = `SMVN ${contact.phone || 'SODIENTHOAI'} ${Math.round(grandTotal)}`
+
+  const cardNumberDigits = card.number.replace(/\D/g, '')
+  const cardCvvDigits = card.cvv.replace(/\D/g, '')
+  const isCardValid = cardNumberDigits.length >= 12 && cardNumberDigits.length <= 19 && cardCvvDigits.length >= 3 && cardCvvDigits.length <= 4 && card.name.trim().length >= 2 && /^\d{2}\/\d{2}$/.test(card.expiry)
+  const isPaymentReady = payment === 'COD' || (payment === 'BANK' && bankConfirmed) || (payment === 'VISA' && isCardValid)
+
+  function handlePaymentChange(value) {
+    setPayment(value)
+    setBankConfirmed(false)
+    if (value !== 'VISA') setCard({ number: '', name: '', expiry: '', cvv: '' })
+  }
+
+  function formatCardNumber(value) {
+    return value.replace(/\D/g, '').slice(0, 19).replace(/(.{4})/g, '$1 ').trim()
+  }
+
+  function formatExpiry(value) {
+    const digits = value.replace(/\D/g, '').slice(0, 4)
+    return digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits
+  }
 
   async function applyPromo() {
     setPromoMsg('')
@@ -115,6 +144,13 @@ export default function CheckoutPage() {
 
   async function handleSubmit(e) {
     e.preventDefault()
+    if (!isPaymentReady) {
+      const message = payment === 'BANK'
+        ? 'Vui lòng xác nhận đã quét QR chuyển khoản giả lập.'
+        : 'Vui lòng nhập đủ thông tin thẻ Visa giả lập.'
+      setToast({ message, type: 'error' })
+      return
+    }
     setSubmitting(true)
     try {
       const payload = {
@@ -126,7 +162,7 @@ export default function CheckoutPage() {
         })),
         shippingMethod: shipping,
         paymentMethod: payment,
-        paymentConfirmed: payment !== 'COD',
+        paymentConfirmed: payment === 'BANK' ? bankConfirmed : payment === 'VISA' ? isCardValid : false,
         promoCode: discount > 0 ? promoCode : '',
         note,
       }
@@ -195,7 +231,7 @@ export default function CheckoutPage() {
               <div className="grid gap-3 border-t border-gray-100 pt-5 sm:grid-cols-3">
                 {PAYMENT_OPTIONS.map(option => (
                   <label key={option.value} className={`group relative flex cursor-pointer flex-col gap-4 overflow-hidden rounded-3xl border p-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_45px_rgba(15,23,42,.09)] ${payment===option.value ? 'border-primary bg-[linear-gradient(135deg,rgba(255,106,32,.10),rgba(255,255,255,.96))] ring-2 ring-primary/10' : 'border-gray-200 hover:border-primary/40'}`}>
-                    <input className="sr-only" type="radio" name="payment" value={option.value} checked={payment===option.value} onChange={()=>setPayment(option.value)} />
+                    <input className="sr-only" type="radio" name="payment" value={option.value} checked={payment===option.value} onChange={()=>handlePaymentChange(option.value)} />
                     <span className="flex items-start justify-between gap-3">
                       <PaymentIcon type={option.value} />
                       <span className={`grid size-5 place-items-center rounded-full border transition ${payment===option.value ? 'border-primary bg-primary' : 'border-gray-300 group-hover:border-primary'}`}>
@@ -210,9 +246,75 @@ export default function CheckoutPage() {
                   </label>
                 ))}
               </div>
+              {payment === 'BANK' && (
+                <div className="grid gap-4 rounded-3xl border border-sky-100 bg-[linear-gradient(135deg,#f0f9ff,#fff)] p-4 sm:grid-cols-[180px,1fr]">
+                  <div className="grid aspect-square place-items-center rounded-3xl bg-white p-4 shadow-[0_18px_55px_rgba(2,132,199,.12)] ring-1 ring-sky-100">
+                    <div className="grid size-full grid-cols-5 grid-rows-5 gap-1 rounded-2xl bg-slate-950 p-3">
+                      {Array.from({ length: 25 }).map((_, index) => (
+                        <span key={index} className={`rounded-sm ${[0,1,3,4,5,9,15,19,20,21,23,24,7,11,13,17].includes(index) ? 'bg-white' : 'bg-sky-400'}`} />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex flex-col justify-between gap-4">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[.18em] text-sky-500">QR chuyển khoản giả lập</p>
+                      <h3 className="mt-1 text-lg font-black text-sole-dark">{BANK_TRANSFER.bank}</h3>
+                      <div className="mt-3 grid gap-2 text-sm text-gray-600">
+                        <div className="flex justify-between gap-4"><span>Chủ tài khoản</span><strong className="text-right text-sole-dark">{BANK_TRANSFER.accountName}</strong></div>
+                        <div className="flex justify-between gap-4"><span>Số tài khoản</span><strong className="text-right text-sole-dark">{BANK_TRANSFER.accountNo}</strong></div>
+                        <div className="flex justify-between gap-4"><span>Số tiền</span><strong className="text-right text-primary">{formatVND(grandTotal)}</strong></div>
+                      </div>
+                      <div className="mt-3 rounded-2xl bg-white px-4 py-3 text-xs text-gray-500 ring-1 ring-sky-100">
+                        Nội dung: <span className="font-black text-sole-dark">{bankContent}</span>
+                      </div>
+                    </div>
+                    <button type="button" onClick={() => setBankConfirmed(true)} className={`rounded-2xl px-4 py-3 text-sm font-black transition ${bankConfirmed ? 'bg-emerald-500 text-white shadow-[0_14px_30px_rgba(16,185,129,.24)]' : 'bg-sky-600 text-white hover:-translate-y-0.5 hover:bg-sky-700'}`}>
+                      {bankConfirmed ? 'Đã xác nhận chuyển khoản giả lập' : 'Tôi đã quét QR và chuyển khoản'}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {payment === 'VISA' && (
+                <div className="grid gap-4 rounded-3xl border border-blue-100 bg-[linear-gradient(135deg,#eff6ff,#fff)] p-4 lg:grid-cols-[260px,1fr]">
+                  <div className="flex min-h-40 flex-col justify-between rounded-3xl bg-[linear-gradient(135deg,#132c6f,#2563eb)] p-5 text-white shadow-[0_22px_60px_rgba(37,99,235,.22)]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-[.18em] text-white/60">SoleMate Pay</span>
+                      <span className="text-lg font-black italic">VISA</span>
+                    </div>
+                    <div>
+                      <p className="font-mono text-lg tracking-[.18em]">{card.number || '4242 4242 4242 4242'}</p>
+                      <div className="mt-5 flex items-end justify-between gap-4 text-xs">
+                        <span><span className="block text-white/45">CARD HOLDER</span><strong>{card.name || 'NGUYEN VAN A'}</strong></span>
+                        <span><span className="block text-white/45">EXP</span><strong>{card.expiry || '12/30'}</strong></span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <label className="mb-1 block text-sm font-bold text-sole-dark">Số thẻ Visa giả lập</label>
+                      <input inputMode="numeric" autoComplete="cc-number" value={card.number} onChange={e => setCard(p => ({ ...p, number: formatCardNumber(e.target.value) }))} className="form-field" placeholder="4242 4242 4242 4242" />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="mb-1 block text-sm font-bold text-sole-dark">Tên trên thẻ</label>
+                      <input autoComplete="cc-name" value={card.name} onChange={e => setCard(p => ({ ...p, name: e.target.value.toUpperCase() }))} className="form-field" placeholder="NGUYEN VAN A" />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-bold text-sole-dark">Hết hạn</label>
+                      <input inputMode="numeric" autoComplete="cc-exp" value={card.expiry} onChange={e => setCard(p => ({ ...p, expiry: formatExpiry(e.target.value) }))} className="form-field" placeholder="MM/YY" />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-bold text-sole-dark">CVV</label>
+                      <input inputMode="numeric" autoComplete="cc-csc" value={card.cvv} onChange={e => setCard(p => ({ ...p, cvv: e.target.value.replace(/\D/g, '').slice(0, 4) }))} className="form-field" placeholder="123" />
+                    </div>
+                    <p className={`sm:col-span-2 rounded-2xl px-4 py-3 text-xs leading-5 ${isCardValid ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'bg-white text-gray-500 ring-1 ring-blue-100'}`}>
+                      {isCardValid ? 'Thẻ giả lập hợp lệ. Khi đặt hàng, đơn sẽ được đánh dấu đã thanh toán và backend vẫn trừ tồn kho.' : 'Bạn có thể nhập số bất kỳ từ 12-19 chữ số, tên, hạn MM/YY và CVV 3-4 số để mô phỏng thanh toán.'}
+                    </p>
+                  </div>
+                </div>
+              )}
               {payment !== 'COD' && (
                 <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-4 text-xs leading-5 text-gray-600">
-                  <span className="font-bold text-sole-dark">Thanh toán giả lập:</span> hệ thống sẽ tạo đơn hàng và đánh dấu thanh toán thành công để bạn test luồng checkout, tồn kho vẫn được trừ bằng backend như đơn thật.
+                  <span className="font-bold text-sole-dark">Lưu ý:</span> đây là thanh toán giả lập để test checkout. Không thu tiền thật; đơn chỉ được gửi khi bước thanh toán tương ứng đã hoàn tất.
                 </div>
               )}
             </div>
