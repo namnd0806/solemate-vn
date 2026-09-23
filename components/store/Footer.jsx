@@ -18,7 +18,7 @@ export default function Footer() {
             </div>
           </div>
 
-          <FooterLinks title="Danh mục" links={[['Nam','/nam'],['Nữ','/nu'],['Trẻ em','/tre-em'],['Giảm giá','/sale']]} />
+          <FooterLinks title="Danh mục" links={[['Giày Nam','/nam'],['Giày Nữ','/nu'],['Hàng mới','/hang-moi'],['Giảm giá','/sale']]} />
           <FooterLinks title="Hỗ trợ" links={[['Tra cứu đơn hàng','/track-order'],['Đơn hàng của tôi','/account/orders'],['Đăng nhập','/login'],['Đăng ký','/register']]} />
 
           <div>

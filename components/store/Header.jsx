@@ -15,8 +15,6 @@ const NAV_LINKS = [
   { href: '/', label: 'Trang chủ' },
   { href: '/nam', label: 'Nam' },
   { href: '/nu', label: 'Nữ' },
-  { href: '/tre-em', label: 'Trẻ em' },
-  { href: '/thuong-hieu', label: 'Thương hiệu' },
   { href: '/hang-moi', label: 'Hàng mới' },
   { href: '/sale', label: 'Giảm giá' },
 ]

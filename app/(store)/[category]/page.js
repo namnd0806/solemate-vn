@@ -5,8 +5,6 @@ import { notFound } from 'next/navigation'
 const CATEGORY_MAP = {
   nam:         { gender: 'NAM',    title: 'Giày Nam' },
   nu:          { gender: 'NỮ',     title: 'Giày Nữ' },
-  'tre-em':    { gender: 'TRẺ EM', title: 'Giày Trẻ Em' },
-  'thuong-hieu': { brand: undefined, title: 'Thương Hiệu', status: 'ACTIVE' },
   'hang-moi':  { sort: 'newest',   title: 'Hàng Mới' },
   sale:        { hasSalePrice: true, title: 'Giảm Giá' },
 }

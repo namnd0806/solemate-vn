@@ -11,8 +11,8 @@ const EMPTY_PRODUCT = {
 }
 const EMPTY_VARIANT = { sku: '', color: '', size: '', stock: '0', status: 'ACTIVE' }
 
-const GENDERS = ['NAM', 'NỮ', 'TRẺ EM', 'UNISEX']
-const CATEGORIES = ['LIFESTYLE', 'RUNNING', 'KIDS']
+const GENDERS = ['NAM', 'NỮ']
+const CATEGORIES = ['LIFESTYLE', 'RUNNING']
 const BRANDS = ['NIKE', 'ADIDAS', 'NEW BALANCE', 'ASICS', 'CONVERSE', 'PUMA', 'VANS']
 
 function slugify(str) {
