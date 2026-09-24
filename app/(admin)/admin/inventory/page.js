@@ -94,6 +94,7 @@ export default function AdminInventoryPage() {
   const [movementType, setMovementType] = useState('ALL')
   const [skuPage, setSkuPage] = useState(1)
   const [movementPage, setMovementPage] = useState(1)
+  const [advancedOpen, setAdvancedOpen] = useState(false)
   const [toast, setToast] = useState(null)
 
   function showToast(message, type = 'success') {
@@ -183,6 +184,12 @@ export default function AdminInventoryPage() {
     low: variants.filter(variant => variant.stock > 0 && variant.stock <= LOW_STOCK_THRESHOLD).length,
     out: variants.filter(variant => variant.stock === 0).length,
   }), [variants])
+  const activeFilterCount = [
+    search.trim(),
+    stockFilter !== 'ALL',
+    statusFilter !== 'ALL',
+    sort !== 'LOW_FIRST',
+  ].filter(Boolean).length
 
   if (loading) {
     return (
@@ -273,9 +280,10 @@ export default function AdminInventoryPage() {
                 <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 12a8 8 0 1 1-2.34-5.66" /><path d="M20 4v6h-6" /></svg>
                 Làm mới
               </button>
-              <button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-[#ff4f24] px-4 py-2.5 text-sm font-black text-white shadow-[0_12px_26px_rgba(242,106,46,.25)]">
+              <button type="button" onClick={() => setAdvancedOpen(open => !open)} aria-expanded={advancedOpen} className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-[#ff4f24] px-4 py-2.5 text-sm font-black text-white shadow-[0_12px_26px_rgba(242,106,46,.25)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(242,106,46,.32)]">
                 <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 5h16l-6 7v5l-4 2v-7L4 5Z" /></svg>
                 Lọc nâng cao
+                {activeFilterCount > 0 && <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-black text-primary">{activeFilterCount}</span>}
               </button>
             </div>
             <span className="w-full font-bold text-gray-400">Hiển thị <b className="text-sole-dark">{filteredVariants.length}</b> / {variants.length} SKU</span>
@@ -283,6 +291,22 @@ export default function AdminInventoryPage() {
               <button type="button" onClick={() => { setSearch(''); setStockFilter('ALL'); setStatusFilter('ALL'); setSort('LOW_FIRST'); setSkuPage(1) }} className="font-black text-primary hover:text-primary-deep">Xóa bộ lọc</button>
             )}
           </div>
+          {advancedOpen && (
+            <div className="relative mt-4 grid gap-3 rounded-[24px] border border-orange-100 bg-gradient-to-br from-orange-50/70 to-white p-4 shadow-inner md:grid-cols-3">
+              <label className="space-y-2">
+                <span className="text-[11px] font-black uppercase tracking-[.14em] text-gray-400">Tồn kho</span>
+                <select value={stockFilter} onChange={event => { setStockFilter(event.target.value); setSkuPage(1) }} className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 text-sm font-black text-gray-600 outline-none transition focus:border-primary">{STOCK_FILTERS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+              </label>
+              <label className="space-y-2">
+                <span className="text-[11px] font-black uppercase tracking-[.14em] text-gray-400">Trạng thái bán</span>
+                <select value={statusFilter} onChange={event => { setStatusFilter(event.target.value); setSkuPage(1) }} className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 text-sm font-black text-gray-600 outline-none transition focus:border-primary">{STATUS_FILTERS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+              </label>
+              <label className="space-y-2">
+                <span className="text-[11px] font-black uppercase tracking-[.14em] text-gray-400">Sắp xếp</span>
+                <select value={sort} onChange={event => { setSort(event.target.value); setSkuPage(1) }} className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 text-sm font-black text-gray-600 outline-none transition focus:border-primary">{SORTS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+              </label>
+            </div>
+          )}
         </div>
 
         <div className="divide-y divide-gray-100 md:hidden">

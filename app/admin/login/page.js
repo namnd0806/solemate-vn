@@ -36,7 +36,7 @@ export default function AdminLoginPage() {
             <label className="block text-sm text-gray-600 mb-1">Email hoặc tài khoản</label>
             <input type="text" required value={form.email}
               onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-              autoComplete="username" placeholder="Ví dụ: admin"
+              autoComplete="username"
               className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
           </div>
           <div>

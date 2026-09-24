@@ -41,7 +41,6 @@ function LoginForm() {
             onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
             className="form-field"
             autoComplete="username"
-            placeholder="Ví dụ: customer"
           />
         </div>
         <div>
