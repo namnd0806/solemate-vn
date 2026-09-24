@@ -35,11 +35,13 @@ function LoginForm() {
       <p className="mb-7 mt-2 text-sm text-gray-400">Tiếp tục hành trình cùng SoleMate VN.</p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm text-gray-600 mb-1">Email</label>
+          <label className="block text-sm text-gray-600 mb-1">Email hoặc tài khoản</label>
           <input
-            type="email" required value={form.email}
+            type="text" required value={form.email}
             onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
             className="form-field"
+            autoComplete="username"
+            placeholder="Ví dụ: customer"
           />
         </div>
         <div>
@@ -48,6 +50,7 @@ function LoginForm() {
             type="password" required value={form.password}
             onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
             className="form-field"
+            autoComplete="current-password"
           />
         </div>
         {error && <p className="text-red-600 text-sm">{error}</p>}
