@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { formatVND } from '@/lib/utils'
+import { ProductToast } from '@/components/admin/ProductFeedback'
 
 const STATUS_CONFIG = {
   PENDING: { label: 'Chờ xác nhận', hint: 'Đơn mới, cần kiểm tra thông tin', color: 'bg-yellow-50 text-yellow-700 border-yellow-200', dot: 'bg-yellow-400' },
@@ -56,7 +57,7 @@ export default function AdminOrdersPage() {
   const [internalNote, setInternalNote] = useState('')
 
   function showToast(msg, type = 'success') {
-    setToast({ msg, type })
+    setToast({ message: msg, type, id: Date.now() })
     setTimeout(() => setToast(null), 3200)
   }
 
@@ -163,7 +164,7 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="space-y-6">
-      {toast && <div className={`fixed right-4 top-4 z-50 rounded-xl px-4 py-3 text-sm font-bold text-white shadow-lg ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`}>{toast.msg}</div>}
+      <ProductToast key={toast?.id} toast={toast} onClose={() => setToast(null)} />
 
       {cancelTarget && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4 backdrop-blur-sm">

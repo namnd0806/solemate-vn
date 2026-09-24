@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { formatVND } from '@/lib/utils'
+import { ProductToast } from '@/components/admin/ProductFeedback'
 
 const EMPTY = {
   code: '', name: '', type: 'PERCENT', value: '', max_discount: '',
@@ -47,10 +48,13 @@ export default function AdminPromotionsPage() {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    const timer = setTimeout(load, 0)
+    return () => clearTimeout(timer)
+  }, [])
 
   function showToast(msg, type = 'success') {
-    setToast({ msg, type })
+    setToast({ message: msg, type, id: Date.now() })
     setTimeout(() => setToast(null), 3000)
   }
 
@@ -96,6 +100,7 @@ export default function AdminPromotionsPage() {
     })
     const data = await res.json()
     if (data.ok) { showToast(p.enabled ? 'Đã tắt mã' : 'Đã bật mã'); load() }
+    else showToast(data.message || 'Không thể cập nhật mã.', 'error')
   }
 
   async function handleDelete(p) {
@@ -108,11 +113,7 @@ export default function AdminPromotionsPage() {
 
   return (
     <div className="space-y-6">
-      {toast && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl text-white text-sm font-medium shadow-lg ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`}>
-          {toast.type === 'error' ? '❌' : '✅'} {toast.msg}
-        </div>
-      )}
+      <ProductToast key={toast?.id} toast={toast} onClose={() => setToast(null)} />
 
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">

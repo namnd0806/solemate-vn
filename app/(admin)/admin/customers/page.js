@@ -2,13 +2,19 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { formatVND } from '@/lib/utils'
+import { ProductToast } from '@/components/admin/ProductFeedback'
 
 export default function AdminCustomersPage() {
   const [customers, setCustomers] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState(null)
-  const [toast, setToast] = useState('')
+  const [toast, setToast] = useState(null)
+
+  function showToast(message, type = 'success') {
+    setToast({ message, type, id: Date.now() })
+    setTimeout(() => setToast(null), 3000)
+  }
 
   async function load() {
     setLoading(true)
@@ -32,16 +38,19 @@ export default function AdminCustomersPage() {
   }, [customers, search])
 
   async function toggle(customer) {
-    const response = await fetch(`/api/customers/${customer.id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ active: !customer.active }),
-    })
-    const result = await response.json()
-    if (!result.ok) return setToast(result.message)
-    setToast(customer.active ? 'Đã khóa tài khoản khách hàng.' : 'Đã mở lại tài khoản.')
-    setTimeout(() => setToast(''), 2600)
-    setSelected(null)
-    load()
+    try {
+      const response = await fetch(`/api/customers/${customer.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: !customer.active }),
+      })
+      const result = await response.json()
+      if (!result.ok) return showToast(result.message || 'Không thể cập nhật khách hàng.', 'error')
+      showToast(customer.active ? 'Đã khóa tài khoản khách hàng.' : 'Đã mở lại tài khoản.')
+      setSelected(null)
+      load()
+    } catch {
+      showToast('Không thể kết nối máy chủ khách hàng.', 'error')
+    }
   }
 
   const activeCount = customers.filter(customer => customer.active).length
@@ -49,7 +58,7 @@ export default function AdminCustomersPage() {
 
   return (
     <div className="space-y-6">
-      {toast && <div className="fixed right-5 top-5 z-50 rounded-2xl bg-[#111315] px-4 py-3 text-sm font-semibold text-white shadow-2xl">{toast}</div>}
+      <ProductToast key={toast?.id} toast={toast} onClose={() => setToast(null)} />
       <div>
         <p className="text-xs font-black uppercase tracking-[.18em] text-primary">Customer management</p>
         <h1 className="mt-1 text-3xl font-black tracking-tight text-sole-dark">Khách hàng</h1>

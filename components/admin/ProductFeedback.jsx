@@ -8,11 +8,12 @@ function StatusIcon({ type }) {
 export function ProductToast({ toast, onClose }) {
   if (!toast) return null
   const isError = toast.type === 'error'
+  const message = toast.message || toast.msg
   return (
     <div className="fixed right-4 top-4 z-[80] w-[min(390px,calc(100vw-32px))] animate-[admin-toast-in_.35s_cubic-bezier(.2,.8,.2,1)] overflow-hidden rounded-2xl border border-white/10 bg-[#17191c] text-white shadow-[0_24px_70px_rgba(0,0,0,.32)]">
       <div className="flex gap-3 p-4">
         <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${isError ? 'bg-red-500/15 text-red-400' : 'bg-emerald-500/15 text-emerald-400'}`}><StatusIcon type={toast.type} /></span>
-        <div className="min-w-0 flex-1"><p className="text-sm font-black">{isError ? 'Thao tác chưa hoàn tất' : 'Đã cập nhật thành công'}</p><p className="mt-1 text-xs leading-5 text-white/60">{toast.message}</p></div>
+        <div className="min-w-0 flex-1"><p className="text-sm font-black">{isError ? 'Thao tác chưa hoàn tất' : 'Đã cập nhật thành công'}</p><p className="mt-1 text-xs leading-5 text-white/60">{message}</p></div>
         <button type="button" onClick={onClose} className="grid size-8 place-items-center rounded-full text-white/45 transition hover:bg-white/10 hover:text-white" aria-label="Đóng thông báo">×</button>
       </div>
       <div className={`h-1 origin-left animate-[toast-progress_3.4s_linear_forwards] ${isError ? 'bg-red-500' : 'bg-emerald-500'}`} />
