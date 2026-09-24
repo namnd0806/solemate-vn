@@ -17,7 +17,7 @@ const EMPTY_VARIANT = { sku: '', color: '', size: '', stock: '0', status: 'ACTIV
 const GENDERS = ['NAM', 'NỮ']
 const CATEGORIES = ['LIFESTYLE', 'RUNNING']
 const BRANDS = ['NIKE', 'ADIDAS', 'NEW BALANCE', 'ASICS', 'CONVERSE', 'PUMA', 'VANS']
-const PRODUCT_PAGE_SIZE = 9
+const PRODUCT_PAGE_SIZE = 12
 
 function slugify(str) {
   return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -33,7 +33,31 @@ function toLocalInput(value) {
 
 function MetricIcon({ children, tone = 'orange' }) {
   const tones = { orange: 'bg-orange-50 text-primary', green: 'bg-emerald-50 text-emerald-600', blue: 'bg-sky-50 text-sky-600', red: 'bg-red-50 text-red-500' }
-  return <span className={`grid size-11 place-items-center rounded-2xl ${tones[tone]}`}>{children}</span>
+  return <span className={`grid size-14 shrink-0 place-items-center rounded-full shadow-inner ${tones[tone]}`}>{children}</span>
+}
+
+function AdminMetricCard({ label, value, hint, tone, icon, trend = '+12%', children }) {
+  const glow = { green: 'from-emerald-50 to-white', orange: 'from-orange-50 to-white', red: 'from-red-50 to-white', blue: 'from-sky-50 to-white' }
+  const trendTone = tone === 'red' ? 'bg-red-50 text-red-500' : tone === 'blue' ? 'bg-sky-50 text-sky-600' : tone === 'green' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-primary'
+  return (
+    <div className={`group relative overflow-hidden rounded-[26px] border border-gray-200 bg-gradient-to-br ${glow[tone] || glow.orange} p-5 shadow-[0_18px_50px_rgba(20,23,28,.07)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_26px_70px_rgba(20,23,28,.12)]`}>
+      <div className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-white/65 blur-2xl" />
+      <div className="relative flex items-center gap-5">
+        <MetricIcon tone={tone}>{icon || children}</MetricIcon>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-3xl font-black leading-none tracking-tight text-sole-dark">{value}</p>
+            <span className={`rounded-full px-3 py-1 text-xs font-black shadow-sm ${trendTone}`}>{trend}</span>
+          </div>
+          <p className="mt-3 text-base font-black text-sole-dark">{label}</p>
+          <p className="mt-1 text-xs font-bold text-gray-400">{hint}</p>
+        </div>
+        <div className="hidden items-end gap-1 self-end sm:flex">
+          {[18, 28, 40, 32].map((height, index) => <span key={index} className={`w-2 rounded-full ${tone === 'blue' ? 'bg-sky-200' : tone === 'red' ? 'bg-red-200' : tone === 'green' ? 'bg-emerald-200' : 'bg-orange-200'}`} style={{ height }} />)}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function AdminProductsPage() {
@@ -53,6 +77,7 @@ export default function AdminProductsPage() {
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [genderFilter, setGenderFilter] = useState('ALL')
   const [saleFilter, setSaleFilter] = useState('ALL')
+  const [categoryFilter, setCategoryFilter] = useState('ALL')
   const [page, setPage] = useState(1)
   const fileRef = useRef()
 
@@ -158,8 +183,8 @@ export default function AdminProductsPage() {
     const keyword = search.trim().toLowerCase()
     const searchable = `${p.name} ${p.brand} ${(p.variants || []).map(v => v.sku).join(' ')}`.toLowerCase()
     const saleActive = isProductSaleActive(p)
-    return (!keyword || searchable.includes(keyword)) && (statusFilter === 'ALL' || p.status === statusFilter) && (genderFilter === 'ALL' || p.gender === genderFilter) && (saleFilter === 'ALL' || (saleFilter === 'SALE' ? saleActive : !saleActive))
-  }), [products, search, statusFilter, genderFilter, saleFilter])
+    return (!keyword || searchable.includes(keyword)) && (statusFilter === 'ALL' || p.status === statusFilter) && (genderFilter === 'ALL' || p.gender === genderFilter) && (saleFilter === 'ALL' || (saleFilter === 'SALE' ? saleActive : !saleActive)) && (categoryFilter === 'ALL' || p.category === categoryFilter)
+  }), [products, search, statusFilter, genderFilter, saleFilter, categoryFilter])
 
   const productTotalPages = Math.max(1, Math.ceil(filtered.length / PRODUCT_PAGE_SIZE))
   const currentPage = Math.min(page, productTotalPages)
@@ -179,38 +204,75 @@ export default function AdminProductsPage() {
 
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[.2em] text-primary">Catalog workspace</p>
-          <h1 className="mt-1 text-3xl font-black tracking-tight text-sole-dark">Quản lý sản phẩm</h1>
+          <p className="text-xs font-black uppercase tracking-[.24em] text-primary">Admin workspace</p>
+          <h1 className="mt-1 text-4xl font-black tracking-[-.04em] text-sole-dark">Quản lý sản phẩm</h1>
           <p className="mt-2 text-sm text-gray-400">Theo dõi danh mục, giá bán và hiệu suất sản phẩm tại một nơi.</p>
         </div>
-        <button onClick={openNew} className="btn-primary text-sm">
-          <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2.3"><path d="M12 5v14M5 12h14"/></svg> Thêm sản phẩm
-        </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-4">
         {[
-          ['Đang kinh doanh', metrics.active, 'Sản phẩm hiển thị', 'green', <svg key="a" viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7h16l-1 13H5L4 7Z"/><path d="M8 9V6a4 4 0 0 1 8 0v3"/></svg>],
-          ['Đang khuyến mãi', metrics.sale, 'Sale đúng lịch', 'orange', <svg key="b" viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="m4 12 8-8h6l2 2v6l-8 8-8-8Z"/><circle cx="16" cy="8" r="1"/></svg>],
-          ['Cần chú ý kho', metrics.lowStock, 'Tổng tồn ≤ 5 đôi', 'red', <svg key="c" viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7 12 3l8 4v10l-8 4-8-4V7Z"/><path d="M12 12v5m0-9v.01"/></svg>],
-          ['Đã bán ghi nhận', metrics.sold, 'Tự động từ đơn hợp lệ', 'blue', <svg key="d" viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 20V10m7 10V4m7 16v-7"/></svg>],
-        ].map(([label, value, hint, tone, icon]) => <div key={label} className="flex items-center gap-4 rounded-[22px] border border-gray-200 bg-white p-4 shadow-[0_12px_36px_rgba(20,23,28,.055)]"><MetricIcon tone={tone}>{icon}</MetricIcon><div><p className="text-2xl font-black leading-none text-sole-dark">{value}</p><p className="mt-1.5 text-xs font-bold text-gray-600">{label}</p><p className="mt-0.5 text-[10px] text-gray-400">{hint}</p></div></div>)}
+          ['Đang kinh doanh', metrics.active, 'Sản phẩm hiển thị', 'green', '+12%', <svg key="a" viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7h16l-1 13H5L4 7Z"/><path d="M8 9V6a4 4 0 0 1 8 0v3"/></svg>],
+          ['Đang khuyến mãi', metrics.sale, 'Sale đúng lịch', 'orange', '+5%', <svg key="b" viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="m4 12 8-8h6l2 2v6l-8 8-8-8Z"/><circle cx="16" cy="8" r="1"/></svg>],
+          ['Cần chú ý kho', metrics.lowStock, 'Tổng tồn ≤ 5 đôi', 'red', metrics.lowStock ? `+${metrics.lowStock}` : '0%', <svg key="c" viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7 12 3l8 4v10l-8 4-8-4V7Z"/><path d="M12 12v5m0-9v.01"/></svg>],
+          ['Đã bán ghi nhận', metrics.sold, 'Tự động từ đơn hợp lệ', 'blue', '+18%', <svg key="d" viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 20V10m7 10V4m7 16v-7"/></svg>],
+        ].map(([label, value, hint, tone, trend, icon]) => <AdminMetricCard key={label} label={label} value={value} hint={hint} tone={tone} trend={trend}>{icon}</AdminMetricCard>)}
       </div>
 
-      <div className="rounded-[24px] border border-gray-200 bg-white p-3 shadow-[0_12px_36px_rgba(20,23,28,.05)]">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-          <div className="relative flex-1"><svg viewBox="0 0 24 24" className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} placeholder="Tìm tên, thương hiệu hoặc SKU..." className="form-field pl-11" /></div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:flex">
-            <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }} className="min-h-11 rounded-xl border border-gray-200 bg-gray-50 px-3 text-xs font-bold text-gray-600 outline-none focus:border-primary"><option value="ALL">Mọi trạng thái</option><option value="ACTIVE">Đang bán</option><option value="INACTIVE">Đã ẩn</option></select>
-            <select value={genderFilter} onChange={e => { setGenderFilter(e.target.value); setPage(1) }} className="min-h-11 rounded-xl border border-gray-200 bg-gray-50 px-3 text-xs font-bold text-gray-600 outline-none focus:border-primary"><option value="ALL">Nam & Nữ</option><option value="NAM">Nam</option><option value="NỮ">Nữ</option></select>
-            <select value={saleFilter} onChange={e => { setSaleFilter(e.target.value); setPage(1) }} className="min-h-11 rounded-xl border border-gray-200 bg-gray-50 px-3 text-xs font-bold text-gray-600 outline-none focus:border-primary"><option value="ALL">Mọi mức giá</option><option value="SALE">Đang sale</option><option value="REGULAR">Giá thường</option></select>
+      <section className="relative overflow-hidden rounded-[30px] border border-gray-200 bg-white p-5 shadow-[0_22px_70px_rgba(20,23,28,.08)]">
+        <div className="absolute right-8 top-0 h-24 w-80 rounded-full bg-primary/10 blur-3xl" />
+        <div className="relative flex flex-col gap-4">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+            <div className="relative flex-1">
+              <svg viewBox="0 0 24 24" className="absolute left-5 top-1/2 size-5 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+              <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} placeholder="Tìm tên, thương hiệu hoặc SKU..." className="h-16 w-full rounded-3xl border border-gray-200 bg-white pl-14 pr-16 text-sm font-bold text-sole-dark shadow-inner outline-none transition focus:border-primary focus:shadow-[0_0_0_4px_rgba(242,106,46,.1)]" />
+              <span className="absolute right-5 top-1/2 hidden -translate-y-1/2 rounded-xl bg-gray-100 px-2.5 py-1 text-xs font-black text-gray-400 sm:block">⌘ K</span>
+            </div>
+            <button onClick={openNew} className="inline-flex h-16 items-center justify-center gap-3 rounded-3xl bg-gradient-to-r from-primary to-[#ff4f24] px-8 text-sm font-black text-white shadow-[0_16px_34px_rgba(242,106,46,.26)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_50px_rgba(242,106,46,.36)]">
+              <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.3"><path d="M12 5v14M5 12h14"/></svg>
+              Thêm sản phẩm
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_auto_auto]">
+            <label className="relative">
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"><svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7 12 3l8 4v10l-8 4-8-4V7Z" /></svg></span>
+              <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }} className="h-14 w-full appearance-none rounded-2xl border border-gray-200 bg-white pl-11 pr-9 text-sm font-black text-gray-600 outline-none transition hover:border-primary/40 focus:border-primary"><option value="ALL">Mọi trạng thái</option><option value="ACTIVE">Đang bán</option><option value="INACTIVE">Đã ẩn</option></select>
+            </label>
+            <label className="relative">
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"><svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 19a4 4 0 0 0-8 0" /><circle cx="12" cy="8" r="4" /></svg></span>
+              <select value={genderFilter} onChange={e => { setGenderFilter(e.target.value); setPage(1) }} className="h-14 w-full appearance-none rounded-2xl border border-gray-200 bg-white pl-11 pr-9 text-sm font-black text-gray-600 outline-none transition hover:border-primary/40 focus:border-primary"><option value="ALL">Nam & Nữ</option><option value="NAM">Nam</option><option value="NỮ">Nữ</option></select>
+            </label>
+            <label className="relative">
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-primary"><svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="m4 12 8-8h6l2 2v6l-8 8-8-8Z" /><circle cx="16" cy="8" r="1" /></svg></span>
+              <select value={saleFilter} onChange={e => { setSaleFilter(e.target.value); setPage(1) }} className="h-14 w-full appearance-none rounded-2xl border border-gray-200 bg-white pl-11 pr-9 text-sm font-black text-gray-600 outline-none transition hover:border-primary/40 focus:border-primary"><option value="ALL">Mọi mức giá</option><option value="SALE">Đang sale</option><option value="REGULAR">Giá thường</option></select>
+            </label>
+            <label className="relative">
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"><svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" /></svg></span>
+              <select value={categoryFilter} onChange={e => { setCategoryFilter(e.target.value); setPage(1) }} className="h-14 w-full appearance-none rounded-2xl border border-gray-200 bg-white pl-11 pr-9 text-sm font-black text-gray-600 outline-none transition hover:border-primary/40 focus:border-primary"><option value="ALL">Mọi danh mục</option>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select>
+            </label>
+            <button type="button" onClick={load} className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-5 text-sm font-black text-gray-600 shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:text-primary">
+              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 12a8 8 0 1 1-2.34-5.66" /><path d="M20 4v6h-6" /></svg>
+              Làm mới
+            </button>
+            <button type="button" className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-[#ff4f24] px-5 text-sm font-black text-white shadow-[0_12px_26px_rgba(242,106,46,.25)] transition hover:-translate-y-0.5">
+              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 5h16l-6 7v5l-4 2v-7L4 5Z" /></svg>
+              Lọc <span className="grid size-6 place-items-center rounded-full bg-white text-primary">{[search, statusFilter !== 'ALL', genderFilter !== 'ALL', saleFilter !== 'ALL', categoryFilter !== 'ALL'].filter(Boolean).length}</span>
+            </button>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4 text-sm">
+            <span className="inline-flex items-center gap-3 font-bold text-gray-500"><svg viewBox="0 0 24 24" className="size-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>Hiển thị <b className="text-sole-dark">{filtered.length}</b> / {products.length} sản phẩm</span>
+            <div className="flex items-center gap-3">
+              <label className="hidden items-center gap-3 text-sm font-bold text-gray-500 md:flex">Sắp xếp theo:<select className="h-11 rounded-2xl border border-gray-200 bg-white px-4 text-sm font-black text-gray-600 outline-none"><option>Mới nhất</option></select></label>
+              <span className="grid size-11 place-items-center rounded-2xl bg-orange-100 text-primary"><svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" /></svg></span>
+            </div>
+            {(search || statusFilter !== 'ALL' || genderFilter !== 'ALL' || saleFilter !== 'ALL' || categoryFilter !== 'ALL') && <button type="button" onClick={() => { setSearch(''); setStatusFilter('ALL'); setGenderFilter('ALL'); setSaleFilter('ALL'); setCategoryFilter('ALL'); setPage(1) }} className="font-black text-primary hover:text-primary-deep">Xóa bộ lọc</button>}
           </div>
         </div>
-        <div className="mt-3 flex items-center justify-between border-t border-gray-100 px-1 pt-3 text-xs"><span className="font-bold text-gray-400">Hiển thị <b className="text-sole-dark">{filtered.length}</b> / {products.length} sản phẩm</span>{(search || statusFilter !== 'ALL' || genderFilter !== 'ALL' || saleFilter !== 'ALL') && <button type="button" onClick={() => { setSearch(''); setStatusFilter('ALL'); setGenderFilter('ALL'); setSaleFilter('ALL'); setPage(1) }} className="font-black text-primary hover:text-primary-deep">Xóa bộ lọc</button>}</div>
-      </div>
+      </section>
 
       {loading ? (
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="animate-pulse rounded-[24px] border border-gray-100 bg-white p-4">
               <div className="mb-3 aspect-[1.55] rounded-2xl bg-gray-100" />
@@ -223,13 +285,13 @@ export default function AdminProductsPage() {
         <div className="rounded-[26px] border border-dashed border-gray-300 bg-white py-20 text-center"><span className="mx-auto grid size-14 place-items-center rounded-2xl bg-gray-100 text-gray-400"><svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></span><h3 className="mt-4 font-black text-sole-dark">Không tìm thấy sản phẩm phù hợp</h3><p className="mt-1 text-sm text-gray-400">Thử thay đổi từ khóa hoặc bộ lọc hiện tại.</p></div>
       ) : (
         <section className="overflow-hidden rounded-[26px] border border-gray-100 bg-white/55 shadow-[0_12px_36px_rgba(20,23,28,.04)]">
-          <div className="grid grid-cols-1 gap-5 p-1 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 p-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {pagedProducts.map(p => (
             <div key={p.id}
-              className="group overflow-hidden rounded-[24px] border border-gray-200 bg-white shadow-[0_10px_35px_rgba(20,23,28,.055)] transition duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-[0_22px_55px_rgba(20,23,28,.12)]">
-              <div className="relative aspect-[1.55] overflow-hidden bg-gradient-to-br from-[#f6f7f8] to-[#eceef0]">
+              className="group overflow-hidden rounded-[22px] border border-gray-200 bg-white shadow-[0_10px_30px_rgba(20,23,28,.05)] transition duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-[0_20px_48px_rgba(20,23,28,.11)]">
+              <div className="relative aspect-[1.45] overflow-hidden bg-gradient-to-br from-[#f6f7f8] to-[#eceef0]">
                 {p.image_url ? (
-                  <img src={p.image_url} alt={p.name} className="h-full w-full object-contain p-5 transition-transform duration-500 group-hover:scale-105" />
+                  <img src={p.image_url} alt={p.name} className="h-full w-full object-contain p-4 transition-transform duration-500 group-hover:scale-105" />
                 ) : (
                   <div className="grid h-full w-full place-items-center text-sm font-bold text-gray-300">Chưa có ảnh sản phẩm</div>
                 )}
@@ -239,15 +301,15 @@ export default function AdminProductsPage() {
                   </span></div>
               </div>
 
-              <div className="p-5">
+              <div className="p-4">
                 <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-[10px] font-black uppercase tracking-[.12em] text-gray-400">{p.brand} · {p.gender} · {p.category}</p><h3 className="mt-1 line-clamp-1 text-base font-black text-sole-dark">{p.name}</h3></div><span className="shrink-0 rounded-lg bg-gray-100 px-2 py-1 font-mono text-[9px] font-bold text-gray-500">{p.id}</span></div>
                 <div className="mt-3 flex items-center gap-2">
-                  <span className="text-lg font-black text-primary">{formatVND(isProductSaleActive(p) ? p.sale_price : p.price)}</span>
+                  <span className="text-base font-black text-primary">{formatVND(isProductSaleActive(p) ? p.sale_price : p.price)}</span>
                   {isProductSaleActive(p) && <span className="text-xs text-gray-400 line-through">{formatVND(p.price)}</span>}
                 </div>
-                <div className="mt-4 grid grid-cols-3 divide-x divide-gray-100 rounded-2xl bg-[#f7f8f9] py-3 text-center"><div><p className="text-sm font-black text-sole-dark">{p.variants?.length || 0}</p><p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">Biến thể</p></div><div><p className="text-sm font-black text-sole-dark">{(p.variants || []).reduce((sum, v) => sum + Number(v.stock || 0), 0)}</p><p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">Tồn kho</p></div><div><p className="text-sm font-black text-sole-dark">{p.sales_count || 0}</p><p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">Đã bán</p></div></div>
+                <div className="mt-3 grid grid-cols-3 divide-x divide-gray-100 rounded-2xl bg-[#f7f8f9] py-2.5 text-center"><div><p className="text-sm font-black text-sole-dark">{p.variants?.length || 0}</p><p className="text-[8px] font-bold uppercase tracking-wide text-gray-400">Biến thể</p></div><div><p className="text-sm font-black text-sole-dark">{(p.variants || []).reduce((sum, v) => sum + Number(v.stock || 0), 0)}</p><p className="text-[8px] font-bold uppercase tracking-wide text-gray-400">Tồn kho</p></div><div><p className="text-sm font-black text-sole-dark">{p.sales_count || 0}</p><p className="text-[8px] font-bold uppercase tracking-wide text-gray-400">Đã bán</p></div></div>
 
-                <div className="mt-4 flex gap-2">
+                <div className="mt-3 flex gap-2">
                   <button onClick={() => openEdit(p)}
                     className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#17191c] py-2.5 text-xs font-black text-white transition hover:bg-primary">
                     <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="m4 20 4-.8L19 8l-3-3L5 16l-1 4Z"/><path d="m14 7 3 3"/></svg> Chỉnh sửa
