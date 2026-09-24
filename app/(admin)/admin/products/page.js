@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useRef } from 'react'
 import { formatVND } from '@/lib/utils'
 import Link from 'next/link'
 import { isProductSaleActive } from '@/lib/pricing'
+import AdminPagination from '@/components/admin/AdminPagination'
 import { ProductConfirm, ProductToast } from '@/components/admin/ProductFeedback'
 
 const EMPTY_PRODUCT = {
@@ -16,6 +17,7 @@ const EMPTY_VARIANT = { sku: '', color: '', size: '', stock: '0', status: 'ACTIV
 const GENDERS = ['NAM', 'NỮ']
 const CATEGORIES = ['LIFESTYLE', 'RUNNING']
 const BRANDS = ['NIKE', 'ADIDAS', 'NEW BALANCE', 'ASICS', 'CONVERSE', 'PUMA', 'VANS']
+const PRODUCT_PAGE_SIZE = 9
 
 function slugify(str) {
   return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -51,6 +53,7 @@ export default function AdminProductsPage() {
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [genderFilter, setGenderFilter] = useState('ALL')
   const [saleFilter, setSaleFilter] = useState('ALL')
+  const [page, setPage] = useState(1)
   const fileRef = useRef()
 
   async function load() {
@@ -158,6 +161,10 @@ export default function AdminProductsPage() {
     return (!keyword || searchable.includes(keyword)) && (statusFilter === 'ALL' || p.status === statusFilter) && (genderFilter === 'ALL' || p.gender === genderFilter) && (saleFilter === 'ALL' || (saleFilter === 'SALE' ? saleActive : !saleActive))
   }), [products, search, statusFilter, genderFilter, saleFilter])
 
+  const productTotalPages = Math.max(1, Math.ceil(filtered.length / PRODUCT_PAGE_SIZE))
+  const currentPage = Math.min(page, productTotalPages)
+  const pagedProducts = filtered.slice((currentPage - 1) * PRODUCT_PAGE_SIZE, currentPage * PRODUCT_PAGE_SIZE)
+
   const metrics = useMemo(() => ({
     active: products.filter(p => p.status === 'ACTIVE').length,
     sale: products.filter(p => isProductSaleActive(p)).length,
@@ -192,14 +199,14 @@ export default function AdminProductsPage() {
 
       <div className="rounded-[24px] border border-gray-200 bg-white p-3 shadow-[0_12px_36px_rgba(20,23,28,.05)]">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-          <div className="relative flex-1"><svg viewBox="0 0 24 24" className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Tìm tên, thương hiệu hoặc SKU..." className="form-field pl-11" /></div>
-          <div className="grid grid-cols-3 gap-2 lg:flex">
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="min-h-11 rounded-xl border border-gray-200 bg-gray-50 px-3 text-xs font-bold text-gray-600 outline-none focus:border-primary"><option value="ALL">Mọi trạng thái</option><option value="ACTIVE">Đang bán</option><option value="INACTIVE">Đã ẩn</option></select>
-            <select value={genderFilter} onChange={e => setGenderFilter(e.target.value)} className="min-h-11 rounded-xl border border-gray-200 bg-gray-50 px-3 text-xs font-bold text-gray-600 outline-none focus:border-primary"><option value="ALL">Nam & Nữ</option><option value="NAM">Nam</option><option value="NỮ">Nữ</option></select>
-            <select value={saleFilter} onChange={e => setSaleFilter(e.target.value)} className="min-h-11 rounded-xl border border-gray-200 bg-gray-50 px-3 text-xs font-bold text-gray-600 outline-none focus:border-primary"><option value="ALL">Mọi mức giá</option><option value="SALE">Đang sale</option><option value="REGULAR">Giá thường</option></select>
+          <div className="relative flex-1"><svg viewBox="0 0 24 24" className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} placeholder="Tìm tên, thương hiệu hoặc SKU..." className="form-field pl-11" /></div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:flex">
+            <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }} className="min-h-11 rounded-xl border border-gray-200 bg-gray-50 px-3 text-xs font-bold text-gray-600 outline-none focus:border-primary"><option value="ALL">Mọi trạng thái</option><option value="ACTIVE">Đang bán</option><option value="INACTIVE">Đã ẩn</option></select>
+            <select value={genderFilter} onChange={e => { setGenderFilter(e.target.value); setPage(1) }} className="min-h-11 rounded-xl border border-gray-200 bg-gray-50 px-3 text-xs font-bold text-gray-600 outline-none focus:border-primary"><option value="ALL">Nam & Nữ</option><option value="NAM">Nam</option><option value="NỮ">Nữ</option></select>
+            <select value={saleFilter} onChange={e => { setSaleFilter(e.target.value); setPage(1) }} className="min-h-11 rounded-xl border border-gray-200 bg-gray-50 px-3 text-xs font-bold text-gray-600 outline-none focus:border-primary"><option value="ALL">Mọi mức giá</option><option value="SALE">Đang sale</option><option value="REGULAR">Giá thường</option></select>
           </div>
         </div>
-        <div className="mt-3 flex items-center justify-between border-t border-gray-100 px-1 pt-3 text-xs"><span className="font-bold text-gray-400">Hiển thị <b className="text-sole-dark">{filtered.length}</b> / {products.length} sản phẩm</span>{(search || statusFilter !== 'ALL' || genderFilter !== 'ALL' || saleFilter !== 'ALL') && <button type="button" onClick={() => { setSearch(''); setStatusFilter('ALL'); setGenderFilter('ALL'); setSaleFilter('ALL') }} className="font-black text-primary hover:text-primary-deep">Xóa bộ lọc</button>}</div>
+        <div className="mt-3 flex items-center justify-between border-t border-gray-100 px-1 pt-3 text-xs"><span className="font-bold text-gray-400">Hiển thị <b className="text-sole-dark">{filtered.length}</b> / {products.length} sản phẩm</span>{(search || statusFilter !== 'ALL' || genderFilter !== 'ALL' || saleFilter !== 'ALL') && <button type="button" onClick={() => { setSearch(''); setStatusFilter('ALL'); setGenderFilter('ALL'); setSaleFilter('ALL'); setPage(1) }} className="font-black text-primary hover:text-primary-deep">Xóa bộ lọc</button>}</div>
       </div>
 
       {loading ? (
@@ -215,8 +222,9 @@ export default function AdminProductsPage() {
       ) : filtered.length === 0 ? (
         <div className="rounded-[26px] border border-dashed border-gray-300 bg-white py-20 text-center"><span className="mx-auto grid size-14 place-items-center rounded-2xl bg-gray-100 text-gray-400"><svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></span><h3 className="mt-4 font-black text-sole-dark">Không tìm thấy sản phẩm phù hợp</h3><p className="mt-1 text-sm text-gray-400">Thử thay đổi từ khóa hoặc bộ lọc hiện tại.</p></div>
       ) : (
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {filtered.map(p => (
+        <section className="overflow-hidden rounded-[26px] border border-gray-100 bg-white/55 shadow-[0_12px_36px_rgba(20,23,28,.04)]">
+          <div className="grid grid-cols-1 gap-5 p-1 md:grid-cols-2 xl:grid-cols-3">
+          {pagedProducts.map(p => (
             <div key={p.id}
               className="group overflow-hidden rounded-[24px] border border-gray-200 bg-white shadow-[0_10px_35px_rgba(20,23,28,.055)] transition duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-[0_22px_55px_rgba(20,23,28,.12)]">
               <div className="relative aspect-[1.55] overflow-hidden bg-gradient-to-br from-[#f6f7f8] to-[#eceef0]">
@@ -252,7 +260,9 @@ export default function AdminProductsPage() {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+          <AdminPagination page={currentPage} totalPages={productTotalPages} totalItems={filtered.length} pageSize={PRODUCT_PAGE_SIZE} label="sản phẩm" onPageChange={setPage} />
+        </section>
       )}
 
       {/* Modal Form */}

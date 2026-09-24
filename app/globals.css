@@ -127,6 +127,10 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .admin-dark .form-field::placeholder,
 .admin-dark input::placeholder,
 .admin-dark textarea::placeholder { color: #69717c; }
+.admin-dark .admin-pagination {
+  border-color: rgba(255, 255, 255, .09);
+  background: linear-gradient(90deg, #15181c, #15181c 55%, rgba(242, 106, 46, .09));
+}
 .admin-dark table thead,
 .admin-dark thead.bg-\[\#f7f8f9\] { background-color: #1b1f24; }
 .admin-dark tr:hover { background-color: rgba(242, 106, 46, .08); }

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { formatVND } from '@/lib/utils'
+import AdminPagination from '@/components/admin/AdminPagination'
 import { ProductToast } from '@/components/admin/ProductFeedback'
 
 const STATUS_CONFIG = {
@@ -22,8 +23,9 @@ const TRANSITIONS = {
   CANCELLED: [],
 }
 
-const PAYMENT_METHODS = { COD: '💵 COD', BANK: '🏦 QR ngân hàng', VISA: '💳 Visa', MOMO: '💜 MoMo' }
+const PAYMENT_METHODS = { COD: 'COD', BANK: 'QR ngân hàng', VISA: 'Visa', MOMO: 'MoMo' }
 const CARRIERS = [['GHN', 'GHN'], ['GHTK', 'GHTK'], ['VIETTEL_POST', 'Viettel Post'], ['SHOP', 'Shop tự giao'], ['OTHER', 'Khác']]
+const ORDER_PAGE_SIZE = 10
 
 function StatusBadge({ status }) {
   const c = STATUS_CONFIG[status] || {}
@@ -55,6 +57,7 @@ export default function AdminOrdersPage() {
   const [cancelReason, setCancelReason] = useState('')
   const [shipping, setShipping] = useState({ carrier: '', tracking: '' })
   const [internalNote, setInternalNote] = useState('')
+  const [page, setPage] = useState(1)
 
   function showToast(msg, type = 'success') {
     setToast({ message: msg, type, id: Date.now() })
@@ -201,13 +204,40 @@ export default function AdminOrdersPage() {
 
       <div className="flex flex-wrap gap-2">
         {[['', 'Tất cả'], ...Object.entries(STATUS_CONFIG).map(([key, value]) => [key, value.label])].map(([value, label]) => (
-          <button key={value} onClick={() => setFilterStatus(value)} className={`rounded-xl px-4 py-2 text-sm font-bold transition ${filterStatus === value ? 'bg-primary text-white shadow-md' : 'border border-gray-200 bg-white text-gray-600 hover:border-primary'}`}>{label}</button>
+          <button key={value} onClick={() => { setFilterStatus(value); setPage(1) }} className={`rounded-xl px-4 py-2 text-sm font-bold transition ${filterStatus === value ? 'bg-primary text-white shadow-md' : 'border border-gray-200 bg-white text-gray-600 hover:border-primary'}`}>{label}</button>
         ))}
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_520px]">
         <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-          <div className="overflow-x-auto">
+          {(() => {
+            const orderTotalPages = Math.max(1, Math.ceil(orders.length / ORDER_PAGE_SIZE))
+            const currentPage = Math.min(page, orderTotalPages)
+            const pagedOrders = orders.slice((currentPage - 1) * ORDER_PAGE_SIZE, currentPage * ORDER_PAGE_SIZE)
+            return (
+              <>
+          <div className="divide-y divide-gray-100 md:hidden">
+            {loading ? [...Array(5)].map((_, i) => <div key={i} className="p-4"><div className="h-20 animate-pulse rounded-2xl bg-gray-100" /></div>) : pagedOrders.map(order => (
+              <button key={order.id} type="button" onClick={() => selectOrder(order)} className={`block w-full p-4 text-left transition hover:bg-orange-50/35 ${selected?.id === order.id ? 'bg-primary/5' : ''}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-mono text-xs font-black text-sole-dark">#{order.id}</p>
+                    <p className="mt-1 text-xs text-gray-400">{new Date(order.created_at).toLocaleString('vi-VN')}</p>
+                  </div>
+                  <StatusBadge status={order.status} />
+                </div>
+                <div className="mt-3 flex items-end justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="line-clamp-1 text-sm font-black text-sole-dark">{order.contact?.fullName || 'Khách'}</p>
+                    <p className="mt-0.5 text-xs text-gray-400">{order.contact?.phone || 'Chưa có SĐT'} · {PAYMENT_METHODS[order.payment_method] || order.payment_method}</p>
+                  </div>
+                  <p className="shrink-0 text-sm font-black text-primary">{formatVND(order.total)}</p>
+                </div>
+              </button>
+            ))}
+            {!loading && orders.length === 0 && <div className="py-12 text-center text-gray-400">Không có đơn hàng</div>}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
               <thead className="border-b border-gray-100 bg-gray-50">
                 <tr>
@@ -219,7 +249,7 @@ export default function AdminOrdersPage() {
                 </tr>
               </thead>
               <tbody>
-                {loading ? [...Array(5)].map((_, i) => <tr key={i}><td colSpan={5} className="px-4 py-4"><div className="h-4 animate-pulse rounded bg-gray-100" /></td></tr>) : orders.map(order => (
+                {loading ? [...Array(5)].map((_, i) => <tr key={i}><td colSpan={5} className="px-4 py-4"><div className="h-4 animate-pulse rounded bg-gray-100" /></td></tr>) : pagedOrders.map(order => (
                   <tr key={order.id} onClick={() => selectOrder(order)} className={`cursor-pointer border-b border-gray-50 transition hover:bg-gray-50 ${selected?.id === order.id ? 'bg-primary/5' : ''}`}>
                     <td className="px-4 py-3"><div className="font-mono text-xs font-black text-sole-dark">#{order.id}</div><div className="mt-1 text-xs text-gray-400">{new Date(order.created_at).toLocaleString('vi-VN')}</div></td>
                     <td className="px-4 py-3"><div className="font-bold text-gray-700">{order.contact?.fullName || 'Khách'}</div><div className="text-xs text-gray-400">{order.contact?.phone}</div></td>
@@ -232,6 +262,10 @@ export default function AdminOrdersPage() {
               </tbody>
             </table>
           </div>
+          <AdminPagination page={currentPage} totalPages={orderTotalPages} totalItems={orders.length} pageSize={ORDER_PAGE_SIZE} label="đơn hàng" onPageChange={setPage} />
+              </>
+            )
+          })()}
         </div>
 
         {selected ? (

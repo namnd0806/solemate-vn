@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import AdminPagination from '@/components/admin/AdminPagination'
 import StockAdjustModal from '@/components/admin/StockAdjustModal'
 import { ProductToast } from '@/components/admin/ProductFeedback'
 
@@ -52,19 +53,6 @@ function StockBadge({ stock }) {
     return <span className="rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-black text-primary">Tồn thấp</span>
   }
   return <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700">Ổn định</span>
-}
-
-function Pager({ page, totalPages, onPage }) {
-  if (totalPages <= 1) return null
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-5 py-4 text-xs">
-      <span className="font-bold text-gray-400">Trang <b className="text-sole-dark">{page}</b> / {totalPages}</span>
-      <div className="flex gap-2">
-        <button type="button" onClick={() => onPage(page - 1)} disabled={page === 1} className="rounded-xl border border-gray-200 px-3 py-2 font-black text-gray-600 transition hover:border-primary hover:text-primary disabled:opacity-35">Trước</button>
-        <button type="button" onClick={() => onPage(page + 1)} disabled={page === totalPages} className="rounded-xl border border-gray-200 px-3 py-2 font-black text-gray-600 transition hover:border-primary hover:text-primary disabled:opacity-35">Sau</button>
-      </div>
-    </div>
-  )
 }
 
 export default function AdminInventoryPage() {
@@ -232,7 +220,7 @@ export default function AdminInventoryPage() {
               <svg viewBox="0 0 24 24" className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
               <input value={search} onChange={event => { setSearch(event.target.value); setSkuPage(1) }} placeholder="Tìm SKU, sản phẩm, thương hiệu, màu, size..." className="form-field pl-11" />
             </div>
-            <div className="grid grid-cols-3 gap-2 lg:flex">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:flex">
               <select value={stockFilter} onChange={event => { setStockFilter(event.target.value); setSkuPage(1) }} className="min-h-11 rounded-xl border border-gray-200 bg-gray-50 px-3 text-xs font-bold text-gray-600 outline-none focus:border-primary">{STOCK_FILTERS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
               <select value={statusFilter} onChange={event => { setStatusFilter(event.target.value); setSkuPage(1) }} className="min-h-11 rounded-xl border border-gray-200 bg-gray-50 px-3 text-xs font-bold text-gray-600 outline-none focus:border-primary">{STATUS_FILTERS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
               <select value={sort} onChange={event => { setSort(event.target.value); setSkuPage(1) }} className="min-h-11 rounded-xl border border-gray-200 bg-gray-50 px-3 text-xs font-bold text-gray-600 outline-none focus:border-primary">{SORTS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
@@ -241,12 +229,38 @@ export default function AdminInventoryPage() {
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
             <span className="font-bold text-gray-400">Hiển thị <b className="text-sole-dark">{filteredVariants.length}</b> / {variants.length} SKU</span>
             {(search || stockFilter !== 'ALL' || statusFilter !== 'ALL' || sort !== 'LOW_FIRST') && (
-              <button type="button" onClick={() => { setSearch(''); setStockFilter('ALL'); setStatusFilter('ALL'); setSort('LOW_FIRST') }} className="font-black text-primary hover:text-primary-deep">Xóa bộ lọc</button>
+              <button type="button" onClick={() => { setSearch(''); setStockFilter('ALL'); setStatusFilter('ALL'); setSort('LOW_FIRST'); setSkuPage(1) }} className="font-black text-primary hover:text-primary-deep">Xóa bộ lọc</button>
             )}
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="divide-y divide-gray-100 md:hidden">
+          {pagedVariants.length === 0 ? (
+            <div className="px-5 py-14 text-center text-sm font-bold text-gray-400">Không có SKU phù hợp với bộ lọc hiện tại.</div>
+          ) : pagedVariants.map(variant => (
+            <article key={variant.sku} className="group p-4 transition hover:bg-orange-50/35">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-mono text-[11px] font-black uppercase tracking-wide text-primary">{variant.sku}</p>
+                  <h3 className="mt-1 line-clamp-2 text-sm font-black text-sole-dark">{variant.productName}</h3>
+                  <p className="mt-1 text-xs font-bold text-gray-400">{variant.brand || 'SoleMate'} · {variant.color} · size {variant.size}</p>
+                </div>
+                <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-black ${variant.productStatus === 'ACTIVE' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-gray-50 text-gray-500'}`}>
+                  {variant.productStatus === 'ACTIVE' ? 'Đang bán' : 'Đã ẩn'}
+                </span>
+              </div>
+              <div className="mt-4 flex items-center justify-between rounded-2xl bg-[#f7f8f9] px-4 py-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[.12em] text-gray-400">Tồn kho</p>
+                  <p className={`mt-1 text-2xl font-black leading-none ${variant.stock <= LOW_STOCK_THRESHOLD ? 'text-red-500' : 'text-sole-dark'}`}>{variant.stock}</p>
+                </div>
+                <StockBadge stock={variant.stock} />
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[920px] text-sm">
             <thead className="bg-[#f7f8f9] text-left text-[10px] uppercase tracking-[.12em] text-gray-400">
               <tr>
@@ -277,7 +291,7 @@ export default function AdminInventoryPage() {
             </tbody>
           </table>
         </div>
-        <Pager page={currentSkuPage} totalPages={skuTotalPages} onPage={next => setSkuPage(Math.min(Math.max(1, next), skuTotalPages))} />
+        <AdminPagination page={currentSkuPage} totalPages={skuTotalPages} totalItems={filteredVariants.length} pageSize={SKU_PAGE_SIZE} label="SKU" onPageChange={next => setSkuPage(Math.min(Math.max(1, next), skuTotalPages))} />
       </section>
 
       <section className="overflow-hidden rounded-[26px] border border-gray-200 bg-white shadow-[0_12px_36px_rgba(20,23,28,.055)]">
@@ -291,7 +305,29 @@ export default function AdminInventoryPage() {
             {Object.entries(MOVEMENT_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
         </div>
-        <div className="overflow-x-auto">
+        <div className="divide-y divide-gray-100 md:hidden">
+          {pagedMovements.length === 0 ? (
+            <div className="px-5 py-14 text-center text-sm font-bold text-gray-400">Chưa có biến động kho phù hợp.</div>
+          ) : pagedMovements.map(movement => (
+            <article key={movement.id} className="p-4 transition hover:bg-gray-50">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-mono text-[11px] font-black text-gray-500">{movement.sku}</p>
+                  <span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-[11px] font-black ${movement.type === 'SALE' ? 'bg-sky-50 text-sky-700' : movement.type === 'CANCEL_RETURN' ? 'bg-emerald-50 text-emerald-700' : 'bg-orange-50 text-primary'}`}>{MOVEMENT_LABELS[movement.type] || movement.type}</span>
+                </div>
+                <p className="text-right text-xs font-bold text-gray-400">{new Date(movement.created_at).toLocaleString('vi-VN')}</p>
+              </div>
+              <div className="mt-4 grid grid-cols-3 overflow-hidden rounded-2xl border border-gray-100 bg-[#f7f8f9] text-center">
+                <div className="p-3"><p className="text-[10px] font-bold text-gray-400">Trước</p><p className="font-black text-sole-dark">{movement.before}</p></div>
+                <div className="border-x border-gray-100 p-3"><p className="text-[10px] font-bold text-gray-400">Thay đổi</p><p className={`font-black ${movement.delta > 0 ? 'text-emerald-600' : 'text-red-500'}`}>{movement.delta > 0 ? '+' : ''}{movement.delta}</p></div>
+                <div className="p-3"><p className="text-[10px] font-bold text-gray-400">Sau</p><p className="font-black text-sole-dark">{movement.after}</p></div>
+              </div>
+              <p className="mt-3 text-xs leading-5 text-gray-500">{movement.note || 'Không có ghi chú'} · {movement.actor || 'SYSTEM'}</p>
+            </article>
+          ))}
+        </div>
+
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[920px] text-sm">
             <thead className="bg-[#f7f8f9] text-left text-[10px] uppercase tracking-[.12em] text-gray-400">
               <tr>
@@ -323,7 +359,7 @@ export default function AdminInventoryPage() {
             </tbody>
           </table>
         </div>
-        <Pager page={currentMovementPage} totalPages={movementTotalPages} onPage={next => setMovementPage(Math.min(Math.max(1, next), movementTotalPages))} />
+        <AdminPagination page={currentMovementPage} totalPages={movementTotalPages} totalItems={filteredMovements.length} pageSize={MOVEMENT_PAGE_SIZE} label="biến động" onPageChange={next => setMovementPage(Math.min(Math.max(1, next), movementTotalPages))} />
       </section>
     </div>
   )

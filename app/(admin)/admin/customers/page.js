@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { formatVND } from '@/lib/utils'
+import AdminPagination from '@/components/admin/AdminPagination'
 import { ProductToast } from '@/components/admin/ProductFeedback'
+
+const CUSTOMER_PAGE_SIZE = 10
 
 export default function AdminCustomersPage() {
   const [customers, setCustomers] = useState([])
@@ -10,6 +13,7 @@ export default function AdminCustomersPage() {
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState(null)
   const [toast, setToast] = useState(null)
+  const [page, setPage] = useState(1)
 
   function showToast(message, type = 'success') {
     setToast({ message, type, id: Date.now() })
@@ -36,6 +40,10 @@ export default function AdminCustomersPage() {
       `${customer.first_name} ${customer.last_name} ${customer.email} ${customer.phone || ''}`.toLowerCase().includes(keyword)
     )
   }, [customers, search])
+
+  const customerTotalPages = Math.max(1, Math.ceil(filtered.length / CUSTOMER_PAGE_SIZE))
+  const currentPage = Math.min(page, customerTotalPages)
+  const pagedCustomers = filtered.slice((currentPage - 1) * CUSTOMER_PAGE_SIZE, currentPage * CUSTOMER_PAGE_SIZE)
 
   async function toggle(customer) {
     try {
@@ -73,12 +81,38 @@ export default function AdminCustomersPage() {
       <div className="overflow-hidden rounded-[24px] border border-gray-200 bg-white shadow-[0_12px_35px_rgba(20,23,28,.06)]">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 p-4">
           <h2 className="font-black text-sole-dark">Danh sách thành viên</h2>
-          <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Tìm tên, email, số điện thoại..." className="form-field max-w-sm" />
+          <div className="relative w-full max-w-sm">
+            <svg viewBox="0 0 24 24" className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+            <input value={search} onChange={event => { setSearch(event.target.value); setPage(1) }} placeholder="Tìm tên, email, số điện thoại..." className="form-field pl-11" />
+          </div>
         </div>
         {loading ? <div className="p-16 text-center text-sm text-gray-400">Đang tải...</div> : (
-          <div className="overflow-x-auto"><table className="w-full min-w-[850px] text-sm">
+          <>
+          <div className="divide-y divide-gray-100 md:hidden">
+            {pagedCustomers.length === 0 ? <div className="px-5 py-14 text-center text-sm font-bold text-gray-400">Không tìm thấy khách hàng.</div> : pagedCustomers.map(customer => (
+              <article key={customer.id} className="p-4 transition hover:bg-orange-50/35">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-primary/10 font-black text-primary">{customer.first_name?.[0]}{customer.last_name?.[0]}</span>
+                    <div className="min-w-0">
+                      <p className="line-clamp-1 font-black text-sole-dark">{customer.first_name} {customer.last_name}</p>
+                      <p className="mt-0.5 line-clamp-1 text-xs text-gray-400">{customer.email}</p>
+                    </div>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${customer.active ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>{customer.active ? 'Hoạt động' : 'Đã khóa'}</span>
+                </div>
+                <div className="mt-4 grid grid-cols-3 divide-x divide-gray-100 rounded-2xl bg-[#f7f8f9] py-3 text-center">
+                  <div><p className="font-black text-sole-dark">{customer.orders_count}</p><p className="text-[10px] font-bold text-gray-400">Đơn</p></div>
+                  <div><p className="font-black text-sole-dark">{customer.delivered_count}</p><p className="text-[10px] font-bold text-gray-400">Đã giao</p></div>
+                  <div><p className="font-black text-primary">{formatVND(customer.total_spent)}</p><p className="text-[10px] font-bold text-gray-400">Chi tiêu</p></div>
+                </div>
+                <button onClick={() => setSelected(customer)} className="mt-3 w-full rounded-xl border border-gray-200 py-2.5 text-xs font-black text-gray-600 transition hover:border-primary hover:text-primary">Xem chi tiết</button>
+              </article>
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto md:block"><table className="w-full min-w-[850px] text-sm">
             <thead className="bg-[#f7f8f9] text-left text-xs uppercase tracking-wide text-gray-400"><tr><th className="px-5 py-3">Khách hàng</th><th className="px-5 py-3">Liên hệ</th><th className="px-5 py-3 text-center">Đơn hàng</th><th className="px-5 py-3 text-right">Đã chi tiêu</th><th className="px-5 py-3">Trạng thái</th><th className="px-5 py-3" /></tr></thead>
-            <tbody>{filtered.map(customer => <tr key={customer.id} className="border-t border-gray-100 transition hover:bg-orange-50/30">
+            <tbody>{pagedCustomers.map(customer => <tr key={customer.id} className="border-t border-gray-100 transition hover:bg-orange-50/30">
               <td className="px-5 py-4"><div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-full bg-primary/10 font-black text-primary">{customer.first_name?.[0]}{customer.last_name?.[0]}</span><div><p className="font-bold text-sole-dark">{customer.first_name} {customer.last_name}</p><p className="text-xs text-gray-400">Tham gia {new Date(customer.created_at).toLocaleDateString('vi-VN')}</p></div></div></td>
               <td className="px-5 py-4"><p>{customer.email}</p><p className="text-xs text-gray-400">{customer.phone || 'Chưa có SĐT'}</p></td>
               <td className="px-5 py-4 text-center font-bold">{customer.orders_count}</td>
@@ -87,6 +121,8 @@ export default function AdminCustomersPage() {
               <td className="px-5 py-4 text-right"><button onClick={() => setSelected(customer)} className="rounded-full border border-gray-200 px-4 py-2 text-xs font-bold transition hover:border-primary hover:text-primary">Chi tiết</button></td>
             </tr>)}</tbody>
           </table></div>
+          <AdminPagination page={currentPage} totalPages={customerTotalPages} totalItems={filtered.length} pageSize={CUSTOMER_PAGE_SIZE} label="khách hàng" onPageChange={setPage} />
+          </>
         )}
       </div>
 

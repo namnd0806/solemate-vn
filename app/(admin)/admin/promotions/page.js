@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { formatVND } from '@/lib/utils'
+import AdminPagination from '@/components/admin/AdminPagination'
 import { ProductToast } from '@/components/admin/ProductFeedback'
 
 const EMPTY = {
   code: '', name: '', type: 'PERCENT', value: '', max_discount: '',
   min_spend: '0', start_at: '', end_at: '', usage_limit: '999999', enabled: true
 }
+const PROMO_PAGE_SIZE = 9
 
 function Badge({ children, color }) {
   const colors = {
@@ -39,6 +41,7 @@ export default function AdminPromotionsPage() {
   const [formError, setFormError] = useState('')
   const [toast, setToast] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [page, setPage] = useState(1)
 
   async function load() {
     setLoading(true)
@@ -111,6 +114,10 @@ export default function AdminPromotionsPage() {
     setDeleteTarget(null); load()
   }
 
+  const promoTotalPages = Math.max(1, Math.ceil(promos.length / PROMO_PAGE_SIZE))
+  const currentPage = Math.min(page, promoTotalPages)
+  const pagedPromos = promos.slice((currentPage - 1) * PROMO_PAGE_SIZE, currentPage * PROMO_PAGE_SIZE)
+
   return (
     <div className="space-y-6">
       <ProductToast key={toast?.id} toast={toast} onClose={() => setToast(null)} />
@@ -130,8 +137,9 @@ export default function AdminPromotionsPage() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-sole-dark">Quản lý khuyến mãi</h1>
-          <p className="text-sm text-gray-400 mt-1">{promos.length} mã giảm giá</p>
+          <p className="text-xs font-black uppercase tracking-[.18em] text-primary">Promotion center</p>
+          <h1 className="mt-1 text-3xl font-black tracking-tight text-sole-dark">Quản lý khuyến mãi</h1>
+          <p className="mt-2 text-sm text-gray-400">{promos.length} mã giảm giá đang được quản lý.</p>
         </div>
         <button onClick={openNew}
           className="flex items-center gap-2 bg-primary hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
@@ -150,9 +158,10 @@ export default function AdminPromotionsPage() {
           <p>Chưa có mã nào. Tạo mã đầu tiên!</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {promos.map(p => (
-            <div key={p.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all p-5">
+        <section className="overflow-hidden rounded-[26px] border border-gray-100 bg-white/55 shadow-[0_12px_36px_rgba(20,23,28,.04)]">
+          <div className="grid grid-cols-1 gap-4 p-1 md:grid-cols-2 lg:grid-cols-3">
+          {pagedPromos.map(p => (
+            <div key={p.id} className="group rounded-[24px] border border-gray-100 bg-white p-5 shadow-[0_10px_30px_rgba(20,23,28,.05)] transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-[0_20px_48px_rgba(20,23,28,.11)]">
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -197,20 +206,23 @@ export default function AdminPromotionsPage() {
               <div className="flex gap-2">
                 <button onClick={() => toggleEnabled(p)}
                   className={`flex-1 py-2 rounded-xl text-xs font-medium transition-all border ${p.enabled ? 'border-orange-200 text-orange-600 hover:bg-orange-50' : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'}`}>
-                  {p.enabled ? '🔴 Tắt' : '🟢 Bật'}
+                  {p.enabled ? 'Tắt mã' : 'Bật mã'}
                 </button>
                 <button onClick={() => openEdit(p)}
                   className="flex-1 py-2 rounded-xl text-xs font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all">
-                  ✏️ Sửa
+                  Sửa
                 </button>
                 <button onClick={() => setDeleteTarget(p)}
-                  className="py-2 px-3 rounded-xl text-xs font-medium border border-red-200 text-red-500 hover:bg-red-50 transition-all">
-                  🗑️
+                  className="grid size-9 place-items-center rounded-xl border border-red-200 text-red-500 transition-all hover:bg-red-50"
+                  aria-label="Xóa mã">
+                  <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v5M14 11v5" /></svg>
                 </button>
               </div>
             </div>
           ))}
-        </div>
+          </div>
+          <AdminPagination page={currentPage} totalPages={promoTotalPages} totalItems={promos.length} pageSize={PROMO_PAGE_SIZE} label="mã" onPageChange={setPage} />
+        </section>
       )}
 
       {/* Form Modal */}
@@ -278,7 +290,7 @@ export default function AdminPromotionsPage() {
                   className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors">Huỷ</button>
                 <button type="submit" disabled={saving}
                   className="px-6 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-orange-600 transition-all shadow-md disabled:opacity-50">
-                  {saving ? '⏳ Đang lưu...' : editing ? '💾 Cập nhật' : '✨ Tạo mã'}
+                  {saving ? 'Đang lưu...' : editing ? 'Cập nhật' : 'Tạo mã'}
                 </button>
               </div>
             </form>
