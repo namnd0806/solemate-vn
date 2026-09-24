@@ -3,7 +3,7 @@
 
 -- RPC: create_order
 CREATE OR REPLACE FUNCTION create_order(payload JSONB)
-RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
 DECLARE
   v_order_id TEXT; v_item JSONB; v_variant variants%ROWTYPE;
   v_promo promotions%ROWTYPE; v_discount INTEGER := 0;
@@ -59,15 +59,18 @@ BEGIN
   RETURN jsonb_build_object('ok', TRUE, 'order_id', v_order_id);
 EXCEPTION WHEN OTHERS THEN RETURN jsonb_build_object('ok', FALSE, 'message', SQLERRM); END; $$;
 
+REVOKE ALL ON FUNCTION create_order(JSONB) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION create_order(JSONB) TO service_role;
+
 -- RPC: cancel_order
-CREATE OR REPLACE FUNCTION cancel_order(p_order_id TEXT)
-RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER AS $$
+CREATE OR REPLACE FUNCTION cancel_order(p_order_id TEXT, p_reason TEXT DEFAULT '', p_actor TEXT DEFAULT 'SYSTEM')
+RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
 DECLARE
   v_order orders%ROWTYPE; v_item order_items%ROWTYPE; v_before INTEGER;
 BEGIN
   SELECT * INTO v_order FROM orders WHERE id = p_order_id FOR UPDATE;
   IF NOT FOUND THEN RETURN jsonb_build_object('ok', FALSE, 'message', 'Không tìm thấy đơn hàng.'); END IF;
-  IF v_order.status NOT IN ('PENDING','CONFIRMED') THEN
+  IF v_order.status NOT IN ('PENDING','CONFIRMED','PACKING') THEN
     RETURN jsonb_build_object('ok', FALSE, 'message', 'Đơn hàng không còn đủ điều kiện hủy.'); END IF;
   IF v_order.stock_restored THEN
     RETURN jsonb_build_object('ok', FALSE, 'message', 'Tồn kho của đơn này đã được hoàn trước đó.'); END IF;
@@ -79,6 +82,12 @@ BEGIN
       v_before, v_before + v_item.qty, p_order_id, 'Hoàn kho do hủy đơn');
   END LOOP;
   UPDATE orders SET status = 'CANCELLED', stock_restored = TRUE,
+    cancel_reason = COALESCE(p_reason, ''),
     cancelled_at = NOW(), updated_at = NOW() WHERE id = p_order_id;
+  INSERT INTO order_events (order_id, actor, event_type, from_status, to_status, note)
+  VALUES (p_order_id, COALESCE(p_actor, 'SYSTEM'), 'CANCEL', v_order.status, 'CANCELLED', COALESCE(p_reason, ''));
   RETURN jsonb_build_object('ok', TRUE, 'order_id', p_order_id);
 EXCEPTION WHEN OTHERS THEN RETURN jsonb_build_object('ok', FALSE, 'message', SQLERRM); END; $$;
+
+REVOKE ALL ON FUNCTION cancel_order(TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION cancel_order(TEXT, TEXT, TEXT) TO service_role;

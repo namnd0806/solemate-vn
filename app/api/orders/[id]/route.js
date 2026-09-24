@@ -38,7 +38,11 @@ export async function PATCH(request, { params }) {
     const result = await updateOrderStatus(id, {
       status: body.status,
       tracking: body.tracking,
+      shippingCarrier: body.shippingCarrier,
       paymentStatus: body.paymentStatus,
+      internalNote: body.internalNote,
+      note: body.note,
+      actor: 'ADMIN',
     })
     if (!result.ok) return NextResponse.json(result, { status: 400 })
     return NextResponse.json(result)

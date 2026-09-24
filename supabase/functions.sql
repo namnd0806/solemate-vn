@@ -21,6 +21,7 @@ CREATE OR REPLACE FUNCTION create_order(payload JSONB)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_order_id    TEXT;
@@ -152,6 +153,9 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION create_order(JSONB) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION create_order(JSONB) TO service_role;
+
 -- =============================================================
 -- RPC: cancel_order
 -- Idempotent: kiểm tra stock_restored trước khi hoàn kho
@@ -163,10 +167,11 @@ $$;
 --   6. UPDATE order: status = CANCELLED, stock_restored = TRUE, cancelled_at = NOW()
 -- Requirements: 9.1, 9.2, 9.3, 9.4
 -- =============================================================
-CREATE OR REPLACE FUNCTION cancel_order(p_order_id TEXT)
+CREATE OR REPLACE FUNCTION cancel_order(p_order_id TEXT, p_reason TEXT DEFAULT '', p_actor TEXT DEFAULT 'SYSTEM')
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_order   orders%ROWTYPE;
@@ -179,7 +184,7 @@ BEGIN
     RETURN jsonb_build_object('ok', FALSE, 'message', 'Không tìm thấy đơn hàng.');
   END IF;
 
-  IF v_order.status NOT IN ('PENDING','CONFIRMED') THEN
+  IF v_order.status NOT IN ('PENDING','CONFIRMED','PACKING') THEN
     RETURN jsonb_build_object('ok', FALSE, 'message', 'Đơn hàng không còn đủ điều kiện hủy.');
   END IF;
 
@@ -206,11 +211,18 @@ BEGIN
 
   UPDATE orders
   SET status = 'CANCELLED', stock_restored = TRUE,
+      cancel_reason = COALESCE(p_reason, ''),
       cancelled_at = NOW(), updated_at = NOW()
   WHERE id = p_order_id;
+
+  INSERT INTO order_events (order_id, actor, event_type, from_status, to_status, note)
+  VALUES (p_order_id, COALESCE(p_actor, 'SYSTEM'), 'CANCEL', v_order.status, 'CANCELLED', COALESCE(p_reason, ''));
 
   RETURN jsonb_build_object('ok', TRUE, 'order_id', p_order_id);
 EXCEPTION WHEN OTHERS THEN
   RETURN jsonb_build_object('ok', FALSE, 'message', SQLERRM);
 END;
 $$;
+
+REVOKE ALL ON FUNCTION cancel_order(TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION cancel_order(TEXT, TEXT, TEXT) TO service_role;

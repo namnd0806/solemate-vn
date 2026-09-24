@@ -1,32 +1,44 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { formatVND } from '@/lib/utils'
 
 const STATUS_CONFIG = {
-  PENDING:   { label: 'Chờ xác nhận', color: 'bg-yellow-50 text-yellow-700 border-yellow-200',   dot: 'bg-yellow-400' },
-  CONFIRMED: { label: 'Đã xác nhận',  color: 'bg-blue-50 text-blue-700 border-blue-200',         dot: 'bg-blue-400' },
-  SHIPPING:  { label: 'Đang giao',    color: 'bg-indigo-50 text-indigo-700 border-indigo-200',   dot: 'bg-indigo-400' },
-  DELIVERED: { label: 'Đã giao',      color: 'bg-emerald-50 text-emerald-700 border-emerald-200',dot: 'bg-emerald-400' },
-  CANCELLED: { label: 'Đã hủy',       color: 'bg-red-50 text-red-600 border-red-200',            dot: 'bg-red-400' },
+  PENDING: { label: 'Chờ xác nhận', hint: 'Đơn mới, cần kiểm tra thông tin', color: 'bg-yellow-50 text-yellow-700 border-yellow-200', dot: 'bg-yellow-400' },
+  CONFIRMED: { label: 'Đã xác nhận', hint: 'Đã chốt đơn, chuẩn bị soạn hàng', color: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-400' },
+  PACKING: { label: 'Đang đóng gói', hint: 'Đóng gói và tạo vận đơn ngoài hệ thống', color: 'bg-orange-50 text-orange-700 border-orange-200', dot: 'bg-orange-400' },
+  SHIPPING: { label: 'Đang giao', hint: 'Đơn đã bàn giao vận chuyển', color: 'bg-indigo-50 text-indigo-700 border-indigo-200', dot: 'bg-indigo-400' },
+  DELIVERED: { label: 'Đã giao', hint: 'Đơn hoàn tất', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-400' },
+  CANCELLED: { label: 'Đã hủy', hint: 'Đơn đã hủy và hoàn kho nếu đủ điều kiện', color: 'bg-red-50 text-red-600 border-red-200', dot: 'bg-red-400' },
 }
 
 const TRANSITIONS = {
-  PENDING:   ['CONFIRMED', 'CANCELLED'],
-  CONFIRMED: ['SHIPPING', 'CANCELLED'],
-  SHIPPING:  ['DELIVERED'],
+  PENDING: ['CONFIRMED', 'CANCELLED'],
+  CONFIRMED: ['PACKING', 'CANCELLED'],
+  PACKING: ['SHIPPING', 'CANCELLED'],
+  SHIPPING: ['DELIVERED'],
   DELIVERED: [],
   CANCELLED: [],
 }
 
 const PAYMENT_METHODS = { COD: '💵 COD', BANK: '🏦 QR ngân hàng', VISA: '💳 Visa', MOMO: '💜 MoMo' }
+const CARRIERS = [['GHN', 'GHN'], ['GHTK', 'GHTK'], ['VIETTEL_POST', 'Viettel Post'], ['SHOP', 'Shop tự giao'], ['OTHER', 'Khác']]
 
 function StatusBadge({ status }) {
   const c = STATUS_CONFIG[status] || {}
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${c.color}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
-      {c.label}
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold ${c.color || 'border-gray-200 bg-gray-50 text-gray-600'}`}>
+      <span className={`size-1.5 rounded-full ${c.dot || 'bg-gray-400'}`} />
+      {c.label || status}
+    </span>
+  )
+}
+
+function PaymentBadge({ order }) {
+  const paid = order.payment_status === 'PAID'
+  return (
+    <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${paid ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-yellow-200 bg-yellow-50 text-yellow-700'}`}>
+      {paid ? 'Đã thanh toán' : 'Chưa thanh toán'}
     </span>
   )
 }
@@ -36,269 +48,253 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
   const [filterStatus, setFilterStatus] = useState('')
-  const [tracking, setTracking] = useState('')
   const [toast, setToast] = useState(null)
+  const [updating, setUpdating] = useState(false)
   const [cancelTarget, setCancelTarget] = useState(null)
-  const [cancelling, setCancelling] = useState(false)
-  const [updatingStatus, setUpdatingStatus] = useState(false)
+  const [cancelReason, setCancelReason] = useState('')
+  const [shipping, setShipping] = useState({ carrier: '', tracking: '' })
+  const [internalNote, setInternalNote] = useState('')
 
   function showToast(msg, type = 'success') {
     setToast({ msg, type })
-    setTimeout(() => setToast(null), 3000)
+    setTimeout(() => setToast(null), 3200)
   }
 
-  async function load() {
-    setLoading(true)
-    const url = filterStatus ? `/api/orders?status=${filterStatus}` : '/api/orders'
-    const res = await fetch(url)
-    const data = await res.json()
-    if (data.ok) setOrders(data.data.orders || [])
-    setLoading(false)
+  useEffect(() => {
+    let ignore = false
+    async function run() {
+      setLoading(true)
+      const url = filterStatus ? `/api/orders?status=${filterStatus}` : '/api/orders'
+      const res = await fetch(url)
+      const data = await res.json()
+      if (ignore) return
+      if (data.ok) {
+        const nextOrders = data.data.orders || []
+        setOrders(nextOrders)
+        setSelected(current => current ? nextOrders.find(o => o.id === current.id) || current : null)
+      } else {
+        showToast(data.message || 'Không tải được đơn hàng.', 'error')
+      }
+      setLoading(false)
+    }
+    run()
+    return () => { ignore = true }
+  }, [filterStatus])
+
+  function selectOrder(order) {
+    setSelected(order)
+    setShipping({ carrier: order.shipping_carrier || '', tracking: order.tracking || '' })
+    setInternalNote(order.internal_note || '')
   }
 
-  useEffect(() => { load() }, [filterStatus])
-
-  async function updateStatus(orderId, status) {
-    setUpdatingStatus(true)
-    const res = await fetch(`/api/orders/${orderId}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    })
+  async function reloadSelected(orderId) {
+    const res = await fetch(`/api/orders/${orderId}`)
     const data = await res.json()
-    setUpdatingStatus(false)
     if (data.ok) {
-      showToast(`Chuyển sang: ${STATUS_CONFIG[status]?.label}`)
-      load()
-      setSelected(s => s ? { ...s, status } : null)
-    } else showToast(data.message, 'error')
+      setSelected(data.data)
+      setOrders(list => list.map(o => o.id === orderId ? data.data : o))
+      setShipping({ carrier: data.data.shipping_carrier || '', tracking: data.data.tracking || '' })
+      setInternalNote(data.data.internal_note || '')
+    }
   }
 
-  async function saveTracking() {
+  async function patchOrder(payload, successMessage) {
     if (!selected) return
+    setUpdating(true)
     const res = await fetch(`/api/orders/${selected.id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tracking }),
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
     })
     const data = await res.json()
-    if (data.ok) showToast('Đã lưu mã vận đơn!')
-    else showToast(data.message, 'error')
+    setUpdating(false)
+    if (!data.ok) {
+      showToast(data.message || 'Cập nhật thất bại.', 'error')
+      return
+    }
+    showToast(successMessage)
+    await reloadSelected(selected.id)
+  }
+
+  async function changeStatus(status) {
+    if (status === 'SHIPPING') {
+      await patchOrder({ status, shippingCarrier: shipping.carrier, tracking: shipping.tracking, note: `Chuyển sang ${STATUS_CONFIG[status].label}` }, 'Đã chuyển sang đang giao.')
+      return
+    }
+    await patchOrder({ status, note: `Chuyển sang ${STATUS_CONFIG[status].label}` }, `Đã chuyển sang ${STATUS_CONFIG[status].label}.`)
+  }
+
+  async function saveShipping() {
+    await patchOrder({ shippingCarrier: shipping.carrier, tracking: shipping.tracking, internalNote, note: 'Cập nhật vận chuyển/ghi chú' }, 'Đã lưu thông tin đơn hàng.')
   }
 
   async function cancelOrder() {
-    if (!cancelTarget) return
-    setCancelling(true)
-    const res = await fetch(`/api/orders/${cancelTarget.id}/cancel`, { method: 'POST' })
+    if (!cancelTarget || !cancelReason.trim()) {
+      showToast('Vui lòng nhập lý do hủy đơn.', 'error')
+      return
+    }
+    setUpdating(true)
+    const res = await fetch(`/api/orders/${cancelTarget.id}/cancel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: cancelReason.trim() }),
+    })
     const data = await res.json()
-    setCancelling(false)
+    setUpdating(false)
+    if (!data.ok) {
+      showToast(data.message || 'Hủy đơn thất bại.', 'error')
+      return
+    }
+    showToast('Đã hủy đơn và hoàn kho.')
     setCancelTarget(null)
-    if (data.ok) {
-      showToast('Đã hủy đơn hàng')
-      load()
-      setSelected(s => s ? { ...s, status: 'CANCELLED' } : null)
-    } else showToast(data.message, 'error')
+    setCancelReason('')
+    await reloadSelected(cancelTarget.id)
   }
 
-  const stats = {
+  const stats = useMemo(() => ({
     total: orders.length,
-    pending: orders.filter(o => o.status === 'PENDING').length,
-    delivered: orders.filter(o => o.status === 'DELIVERED').length,
-    revenue: orders.filter(o => o.status === 'DELIVERED').reduce((s, o) => s + o.total, 0),
-  }
+    action: orders.filter(o => ['PENDING', 'CONFIRMED', 'PACKING'].includes(o.status)).length,
+    shipping: orders.filter(o => o.status === 'SHIPPING').length,
+    revenue: orders.filter(o => o.status === 'DELIVERED').reduce((sum, o) => sum + o.total, 0),
+  }), [orders])
+
+  const nextStatuses = selected ? TRANSITIONS[selected.status] || [] : []
+  const sortedEvents = [...(selected?.order_events || [])].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 
   return (
     <div className="space-y-6">
-      {toast && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl text-white text-sm font-medium shadow-lg transition-all ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`}>
-          {toast.type === 'error' ? '❌' : '✅'} {toast.msg}
-        </div>
-      )}
+      {toast && <div className={`fixed right-4 top-4 z-50 rounded-xl px-4 py-3 text-sm font-bold text-white shadow-lg ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`}>{toast.msg}</div>}
 
       {cancelTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4">
-            <div className="text-4xl text-center mb-3">⚠️</div>
-            <h3 className="font-bold text-sole-dark text-lg mb-2 text-center">Hủy đơn hàng?</h3>
-            <p className="text-gray-500 text-sm mb-6 text-center">Đơn <strong>{cancelTarget.id}</strong> sẽ bị hủy và tồn kho sẽ được hoàn lại.</p>
-            <div className="flex gap-3">
-              <button onClick={() => setCancelTarget(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors">Giữ lại</button>
-              <button onClick={cancelOrder} disabled={cancelling} className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-semibold hover:bg-red-600 transition-colors disabled:opacity-50">
-                {cancelling ? 'Đang hủy...' : 'Hủy đơn'}
-              </button>
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <h3 className="text-lg font-black text-sole-dark">Hủy đơn #{cancelTarget.id}</h3>
+            <p className="mt-2 text-sm leading-6 text-gray-500">Đơn sẽ chuyển sang đã hủy và tồn kho được hoàn lại. Vui lòng ghi lý do để nhân viên khác nắm được.</p>
+            <textarea value={cancelReason} onChange={e => setCancelReason(e.target.value)} rows={3} placeholder="VD: Khách yêu cầu hủy, sai số điện thoại, hết hàng..." className="mt-4 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" />
+            <div className="mt-5 flex gap-3">
+              <button onClick={() => setCancelTarget(null)} className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50">Giữ lại</button>
+              <button onClick={cancelOrder} disabled={updating} className="flex-1 rounded-xl bg-red-500 py-2.5 text-sm font-bold text-white hover:bg-red-600 disabled:opacity-50">Xác nhận hủy</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-sole-dark">Quản lý đơn hàng</h1>
-        <p className="text-sm text-gray-400 mt-1">{orders.length} đơn hàng</p>
+        <h1 className="text-2xl font-black text-sole-dark">Quản lý đơn hàng</h1>
+        <p className="mt-1 text-sm text-gray-400">Xử lý đơn theo luồng: xác nhận, đóng gói, giao hàng, hoàn tất.</p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
-          { label: 'Tổng đơn', value: stats.total, icon: '📦', color: 'text-sole-dark' },
-          { label: 'Chờ xử lý', value: stats.pending, icon: '⏳', color: 'text-yellow-600' },
-          { label: 'Đã giao', value: stats.delivered, icon: '✅', color: 'text-emerald-600' },
-          { label: 'Doanh thu', value: formatVND(stats.revenue), icon: '💰', color: 'text-primary' },
-        ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-            <div className="text-2xl mb-2">{s.icon}</div>
-            <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
-            <div className="text-xs text-gray-400 mt-0.5">{s.label}</div>
+          ['Tổng đơn', stats.total],
+          ['Cần xử lý', stats.action],
+          ['Đang giao', stats.shipping],
+          ['Doanh thu đã giao', formatVND(stats.revenue)],
+        ].map(([label, value]) => (
+          <div key={label} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <div className="text-xl font-black text-sole-dark">{value}</div>
+            <div className="mt-1 text-xs font-bold text-gray-400">{label}</div>
           </div>
         ))}
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex gap-2 flex-wrap">
-        {[['', 'Tất cả'], ...Object.entries(STATUS_CONFIG).map(([k, v]) => [k, v.label])].map(([v, l]) => (
-          <button key={v} onClick={() => setFilterStatus(v)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${filterStatus === v ? 'bg-primary text-white shadow-md' : 'bg-white border border-gray-200 text-gray-600 hover:border-primary'}`}>
-            {l}
-          </button>
+      <div className="flex flex-wrap gap-2">
+        {[['', 'Tất cả'], ...Object.entries(STATUS_CONFIG).map(([key, value]) => [key, value.label])].map(([value, label]) => (
+          <button key={value} onClick={() => setFilterStatus(value)} className={`rounded-xl px-4 py-2 text-sm font-bold transition ${filterStatus === value ? 'bg-primary text-white shadow-md' : 'border border-gray-200 bg-white text-gray-600 hover:border-primary'}`}>{label}</button>
         ))}
       </div>
 
-      <div className="flex gap-6">
-        {/* Order list */}
-        <div className={`${selected ? 'w-1/2' : 'w-full'} transition-all`}>
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100">
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Đơn hàng</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Khách</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Trạng thái</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Tổng</th>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_520px]">
+        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="border-b border-gray-100 bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Đơn</th>
+                  <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Khách</th>
+                  <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Trạng thái</th>
+                  <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Thanh toán</th>
+                  <th className="px-4 py-3 text-right text-xs font-black uppercase tracking-wide text-gray-500">Tổng</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? [...Array(5)].map((_, i) => <tr key={i}><td colSpan={5} className="px-4 py-4"><div className="h-4 animate-pulse rounded bg-gray-100" /></td></tr>) : orders.map(order => (
+                  <tr key={order.id} onClick={() => selectOrder(order)} className={`cursor-pointer border-b border-gray-50 transition hover:bg-gray-50 ${selected?.id === order.id ? 'bg-primary/5' : ''}`}>
+                    <td className="px-4 py-3"><div className="font-mono text-xs font-black text-sole-dark">#{order.id}</div><div className="mt-1 text-xs text-gray-400">{new Date(order.created_at).toLocaleString('vi-VN')}</div></td>
+                    <td className="px-4 py-3"><div className="font-bold text-gray-700">{order.contact?.fullName || 'Khách'}</div><div className="text-xs text-gray-400">{order.contact?.phone}</div></td>
+                    <td className="px-4 py-3"><StatusBadge status={order.status} /></td>
+                    <td className="px-4 py-3"><div className="text-xs font-bold text-gray-600">{PAYMENT_METHODS[order.payment_method] || order.payment_method}</div><div className="mt-1"><PaymentBadge order={order} /></div></td>
+                    <td className="px-4 py-3 text-right font-black text-primary">{formatVND(order.total)}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    [...Array(5)].map((_, i) => (
-                      <tr key={i} className="border-b border-gray-50">
-                        <td colSpan={4} className="px-4 py-4">
-                          <div className="h-4 bg-gray-100 rounded animate-pulse" />
-                        </td>
-                      </tr>
-                    ))
-                  ) : orders.map(o => (
-                    <tr key={o.id}
-                      onClick={() => { setSelected(o); setTracking(o.tracking || '') }}
-                      className={`border-b border-gray-50 cursor-pointer transition-colors hover:bg-gray-50 ${selected?.id === o.id ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}>
-                      <td className="px-4 py-3">
-                        <div className="font-mono text-xs font-semibold text-sole-dark">{o.id}</div>
-                        <div className="text-xs text-gray-400 mt-0.5">{new Date(o.created_at).toLocaleDateString('vi-VN')}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="text-xs font-medium text-gray-700">{o.contact?.fullName || 'Khách'}</div>
-                        <div className="text-xs text-gray-400">{PAYMENT_METHODS[o.payment_method]}</div>
-                      </td>
-                      <td className="px-4 py-3"><StatusBadge status={o.status} /></td>
-                      <td className="px-4 py-3 text-right font-semibold text-primary">{formatVND(o.total)}</td>
-                    </tr>
-                  ))}
-                  {!loading && orders.length === 0 && (
-                    <tr><td colSpan={4} className="text-center py-12 text-gray-400">Không có đơn hàng</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                ))}
+                {!loading && orders.length === 0 && <tr><td colSpan={5} className="py-12 text-center text-gray-400">Không có đơn hàng</td></tr>}
+              </tbody>
+            </table>
           </div>
         </div>
 
-        {/* Detail panel */}
-        {selected && (
-          <div className="w-1/2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gray-50">
-              <div>
-                <div className="font-mono font-bold text-sole-dark">#{selected.id}</div>
-                <div className="text-xs text-gray-400 mt-0.5">{new Date(selected.created_at).toLocaleString('vi-VN')}</div>
-              </div>
-              <div className="flex items-center gap-2">
+        {selected ? (
+          <aside className="rounded-2xl border border-gray-100 bg-white shadow-sm">
+            <div className="border-b border-gray-100 bg-gray-50 px-5 py-4">
+              <div className="flex items-start justify-between gap-4">
+                <div><div className="font-mono text-sm font-black text-sole-dark">#{selected.id}</div><p className="mt-1 text-xs text-gray-400">{STATUS_CONFIG[selected.status]?.hint}</p></div>
                 <StatusBadge status={selected.status} />
-                <button onClick={() => setSelected(null)} className="w-7 h-7 rounded-full hover:bg-gray-200 flex items-center justify-center text-gray-400 transition-colors">✕</button>
               </div>
             </div>
 
-            <div className="p-5 space-y-5 overflow-y-auto max-h-[calc(100vh-300px)]">
-              {/* Contact */}
-              <div className="bg-gray-50 rounded-xl p-3 text-sm space-y-1">
-                <p className="font-semibold text-sole-dark">{selected.contact?.fullName}</p>
-                <p className="text-gray-500">📞 {selected.contact?.phone}</p>
-                <p className="text-gray-500">📍 {selected.contact?.address}, {selected.contact?.ward}, {selected.contact?.district}, {selected.contact?.province}</p>
-                {selected.note && <p className="text-gray-500 italic">📝 {selected.note}</p>}
-              </div>
+            <div className="max-h-[calc(100vh-250px)] space-y-5 overflow-y-auto p-5">
+              <section className="rounded-xl bg-gray-50 p-4 text-sm">
+                <div className="font-black text-sole-dark">{selected.contact?.fullName}</div>
+                <div className="mt-1 text-gray-500">{selected.contact?.phone}</div>
+                <div className="mt-1 leading-6 text-gray-500">{selected.contact?.address}, {selected.contact?.ward}, {selected.contact?.district}, {selected.contact?.province}</div>
+                {selected.note && <div className="mt-2 rounded-lg bg-white px-3 py-2 text-gray-500">Ghi chú khách: {selected.note}</div>}
+              </section>
 
-              {/* Items */}
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Sản phẩm</p>
+              <section>
+                <p className="mb-2 text-xs font-black uppercase tracking-wide text-gray-400">Sản phẩm</p>
                 <div className="space-y-2">
-                  {selected.order_items?.map(i => (
-                    <div key={i.id} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
-                      <div>
-                        <p className="text-sm font-medium text-sole-dark">{i.name}</p>
-                        <p className="text-xs text-gray-400">{i.brand} · {i.color} · Size {i.size} · ×{i.qty}</p>
-                      </div>
-                      <p className="font-semibold text-primary text-sm">{formatVND(i.line_total)}</p>
-                    </div>
-                  ))}
+                  {selected.order_items?.map(item => <div key={item.id} className="flex justify-between gap-3 border-b border-gray-50 py-2 last:border-0"><div><p className="text-sm font-bold text-sole-dark">{item.name}</p><p className="text-xs text-gray-400">{item.sku} · {item.color} · Size {item.size} · x{item.qty}</p></div><div className="whitespace-nowrap text-sm font-black text-primary">{formatVND(item.line_total)}</div></div>)}
                 </div>
-              </div>
+              </section>
 
-              {/* Summary */}
-              <div className="bg-gray-50 rounded-xl p-3 space-y-1.5 text-sm">
+              <section className="rounded-xl bg-gray-50 p-4 text-sm">
                 <div className="flex justify-between text-gray-600"><span>Tạm tính</span><span>{formatVND(selected.subtotal)}</span></div>
-                {selected.discount > 0 && <div className="flex justify-between text-emerald-600"><span>Giảm giá {selected.promo_code && `(${selected.promo_code})`}</span><span>−{formatVND(selected.discount)}</span></div>}
-                <div className="flex justify-between text-gray-600"><span>Vận chuyển</span><span>{selected.shipping_fee === 0 ? 'Miễn phí' : formatVND(selected.shipping_fee)}</span></div>
-                <div className="flex justify-between font-bold text-base border-t border-gray-200 pt-1.5"><span>Tổng</span><span className="text-primary">{formatVND(selected.total)}</span></div>
-              </div>
+                {selected.discount > 0 && <div className="mt-1 flex justify-between text-emerald-600"><span>Giảm giá {selected.promo_code && `(${selected.promo_code})`}</span><span>-{formatVND(selected.discount)}</span></div>}
+                <div className="mt-1 flex justify-between text-gray-600"><span>Vận chuyển</span><span>{selected.shipping_fee === 0 ? 'Miễn phí' : formatVND(selected.shipping_fee)}</span></div>
+                <div className="mt-2 flex justify-between border-t border-gray-200 pt-2 text-base font-black"><span>Tổng</span><span className="text-primary">{formatVND(selected.total)}</span></div>
+              </section>
 
-              {/* Payment */}
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">{PAYMENT_METHODS[selected.payment_method]}</span>
-                <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${selected.payment_status === 'PAID' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'}`}>
-                  {selected.payment_status === 'PAID' ? '✅ Đã thanh toán' : '⏳ Chưa thanh toán'}
-                </span>
-              </div>
-
-              {/* Tracking */}
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Mã vận đơn</p>
-                <div className="flex gap-2">
-                  <input value={tracking} onChange={e => setTracking(e.target.value)}
-                    placeholder="Nhập mã vận đơn..."
-                    className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-primary transition-all" />
-                  <button onClick={saveTracking}
-                    className="px-4 py-2 bg-sole-dark text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors">Lưu</button>
+              <section className="grid gap-3 rounded-xl border border-gray-100 p-4">
+                <div className="flex items-center justify-between gap-3"><span className="text-sm font-bold text-gray-600">{PAYMENT_METHODS[selected.payment_method]}</span><PaymentBadge order={selected} /></div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div><label className="mb-1 block text-xs font-black uppercase tracking-wide text-gray-400">Đơn vị vận chuyển</label><select value={shipping.carrier} onChange={e => setShipping(p => ({ ...p, carrier: e.target.value }))} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary"><option value="">Chọn đơn vị</option>{CARRIERS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
+                  <div><label className="mb-1 block text-xs font-black uppercase tracking-wide text-gray-400">Mã vận đơn</label><input value={shipping.tracking} onChange={e => setShipping(p => ({ ...p, tracking: e.target.value }))} placeholder="VD: GHTK123..." className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" /></div>
                 </div>
-              </div>
+                <div><label className="mb-1 block text-xs font-black uppercase tracking-wide text-gray-400">Ghi chú nội bộ</label><textarea value={internalNote} onChange={e => setInternalNote(e.target.value)} rows={2} placeholder="Ghi chú cho nhân viên xử lý đơn..." className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" /></div>
+                <button onClick={saveShipping} disabled={updating} className="rounded-xl bg-sole-dark px-4 py-2.5 text-sm font-black text-white hover:bg-gray-800 disabled:opacity-50">Lưu vận chuyển/ghi chú</button>
+              </section>
 
-              {/* Actions */}
-              {TRANSITIONS[selected.status]?.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Chuyển trạng thái</p>
+              {nextStatuses.length > 0 && (
+                <section>
+                  <p className="mb-2 text-xs font-black uppercase tracking-wide text-gray-400">Thao tác tiếp theo</p>
                   <div className="flex flex-wrap gap-2">
-                    {TRANSITIONS[selected.status].filter(s => s !== 'CANCELLED').map(s => (
-                      <button key={s} onClick={() => updateStatus(selected.id, s)} disabled={updatingStatus}
-                        className="px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-orange-600 transition-all shadow-sm hover:shadow-md disabled:opacity-50">
-                        → {STATUS_CONFIG[s]?.label}
-                      </button>
-                    ))}
-                    {['PENDING', 'CONFIRMED'].includes(selected.status) && (
-                      <button onClick={() => setCancelTarget(selected)}
-                        className="px-4 py-2 border border-red-200 text-red-500 rounded-xl text-sm font-medium hover:bg-red-50 transition-all">
-                        🚫 Hủy đơn
-                      </button>
-                    )}
+                    {nextStatuses.filter(status => status !== 'CANCELLED').map(status => <button key={status} onClick={() => changeStatus(status)} disabled={updating} className="rounded-xl bg-primary px-4 py-2.5 text-sm font-black text-white shadow-sm hover:bg-orange-600 disabled:opacity-50">Chuyển sang {STATUS_CONFIG[status]?.label}</button>)}
+                    {nextStatuses.includes('CANCELLED') && <button onClick={() => { setCancelTarget(selected); setCancelReason('') }} disabled={updating} className="rounded-xl border border-red-200 px-4 py-2.5 text-sm font-black text-red-500 hover:bg-red-50 disabled:opacity-50">Hủy đơn</button>}
                   </div>
-                </div>
+                </section>
               )}
+
+              <section>
+                <p className="mb-2 text-xs font-black uppercase tracking-wide text-gray-400">Lịch sử xử lý</p>
+                {sortedEvents.length === 0 ? <div className="rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-400">Chưa có lịch sử thao tác.</div> : (
+                  <div className="space-y-2">
+                    {sortedEvents.map(event => <div key={event.id} className="rounded-xl border border-gray-100 px-4 py-3 text-sm"><div className="flex justify-between gap-3"><span className="font-bold text-sole-dark">{event.event_type === 'CANCEL' ? 'Hủy đơn' : event.event_type === 'STATUS_CHANGE' ? 'Đổi trạng thái' : 'Cập nhật đơn'}</span><span className="text-xs text-gray-400">{new Date(event.created_at).toLocaleString('vi-VN')}</span></div>{(event.from_status || event.to_status) && <p className="mt-1 text-xs text-gray-500">{STATUS_CONFIG[event.from_status]?.label || event.from_status} → {STATUS_CONFIG[event.to_status]?.label || event.to_status}</p>}{event.note && <p className="mt-1 text-xs text-gray-500">{event.note}</p>}</div>)}
+                  </div>
+                )}
+              </section>
             </div>
-          </div>
-        )}
+          </aside>
+        ) : <aside className="grid min-h-[420px] place-items-center rounded-2xl border border-dashed border-gray-200 bg-white p-8 text-center text-gray-400">Chọn một đơn hàng để xử lý.</aside>}
       </div>
     </div>
   )

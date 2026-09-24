@@ -9,10 +9,11 @@ import Link from 'next/link'
 import { Suspense } from 'react'
 import { ArrowRightIcon, BoxIcon, CheckIcon, PhoneIcon, PinIcon, TruckIcon } from '@/components/store/Icons'
 
-const STATUS_LABELS = { PENDING:'Chờ xác nhận', CONFIRMED:'Đã xác nhận', SHIPPING:'Đang giao', DELIVERED:'Đã giao', CANCELLED:'Đã hủy' }
+const STATUS_LABELS = { PENDING:'Chờ xác nhận', CONFIRMED:'Đã xác nhận', PACKING:'Đang chuẩn bị hàng', SHIPPING:'Đang giao', DELIVERED:'Đã giao', CANCELLED:'Đã hủy' }
 const STATUS_COLORS = {
   PENDING:'bg-yellow-100 text-yellow-700',
   CONFIRMED:'bg-blue-100 text-blue-700',
+  PACKING:'bg-orange-100 text-orange-700',
   SHIPPING:'bg-indigo-100 text-indigo-700',
   DELIVERED:'bg-green-100 text-green-700',
   CANCELLED:'bg-red-100 text-red-600'
@@ -42,7 +43,11 @@ function OrderDetailContent() {
 
   async function handleCancel() {
     setCancelling(true)
-    const res = await fetch(`/api/orders/${id}/cancel`, { method: 'POST' })
+    const res = await fetch(`/api/orders/${id}/cancel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: 'Khách tự hủy đơn trên website' }),
+    })
     const data = await res.json()
     setCancelling(false)
     setShowCancel(false)
@@ -90,7 +95,9 @@ function OrderDetailContent() {
     )
   }
 
-  const canCancel = ['PENDING', 'CONFIRMED'].includes(order.status)
+  const earlyOrder = ['PENDING', 'CONFIRMED'].includes(order.status)
+  const canCancel = earlyOrder && !order.guest
+  const shouldContactShop = ['PACKING', 'SHIPPING'].includes(order.status) || (earlyOrder && order.guest)
 
   return (
     <main className="mx-auto min-h-[62vh] max-w-4xl px-4 py-10 sm:py-14">
@@ -170,6 +177,13 @@ function OrderDetailContent() {
             className="flex-1 border border-red-400 text-red-600 rounded-full py-3 font-medium hover:bg-red-50 transition-colors">
             Hủy đơn hàng
           </button>
+        )}
+        {shouldContactShop && (
+          <div className="flex-1 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm leading-6 text-orange-700">
+            {order.guest && earlyOrder
+              ? 'Đơn guest cần xác minh qua số điện thoại. Vui lòng liên hệ shop nếu bạn cần hủy hoặc thay đổi thông tin.'
+              : 'Đơn đang được xử lý. Vui lòng liên hệ shop nếu bạn cần hỗ trợ hủy hoặc thay đổi thông tin.'}
+          </div>
         )}
         <Link href="/" className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-primary py-3 font-semibold text-white transition-colors hover:bg-primary-deep">
           Tiếp tục mua sắm <ArrowRightIcon />

@@ -14,9 +14,9 @@ async function getDashboardData() {
   const settings = settingsRes.data || { low_stock_threshold: 3 }
 
   const revenue = orders.filter(o => o.status === 'DELIVERED').reduce((s, o) => s + o.total, 0)
-  const pending = orders.filter(o => ['PENDING', 'CONFIRMED'].includes(o.status)).length
+  const pending = orders.filter(o => ['PENDING', 'CONFIRMED', 'PACKING'].includes(o.status)).length
 
-  const statusBreakdown = { PENDING: 0, CONFIRMED: 0, SHIPPING: 0, DELIVERED: 0, CANCELLED: 0 }
+  const statusBreakdown = { PENDING: 0, CONFIRMED: 0, PACKING: 0, SHIPPING: 0, DELIVERED: 0, CANCELLED: 0 }
   orders.forEach(o => { if (statusBreakdown[o.status] !== undefined) statusBreakdown[o.status]++ })
 
   // 7-day revenue
@@ -41,7 +41,7 @@ async function getDashboardData() {
   return { revenue, pending, statusBreakdown, days, lowStock: lowStock || [] }
 }
 
-const STATUS_VN = { PENDING: 'Chờ xác nhận', CONFIRMED: 'Đã xác nhận', SHIPPING: 'Đang giao', DELIVERED: 'Đã giao', CANCELLED: 'Đã hủy' }
+const STATUS_VN = { PENDING: 'Chờ xác nhận', CONFIRMED: 'Đã xác nhận', PACKING: 'Đang đóng gói', SHIPPING: 'Đang giao', DELIVERED: 'Đã giao', CANCELLED: 'Đã hủy' }
 
 export default async function DashboardPage() {
   const { revenue, pending, statusBreakdown, days, lowStock } = await getDashboardData()

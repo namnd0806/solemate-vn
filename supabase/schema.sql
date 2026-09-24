@@ -86,7 +86,7 @@ CREATE TABLE orders (
   customer_id     TEXT REFERENCES users(id) ON DELETE SET NULL,
   guest           BOOLEAN NOT NULL DEFAULT FALSE,
   status          TEXT NOT NULL DEFAULT 'PENDING'
-                    CHECK (status IN ('PENDING','CONFIRMED','SHIPPING','DELIVERED','CANCELLED')),
+                    CHECK (status IN ('PENDING','CONFIRMED','PACKING','SHIPPING','DELIVERED','CANCELLED')),
   payment_method  TEXT NOT NULL CHECK (payment_method IN ('COD','BANK','VISA','MOMO')),
   payment_status  TEXT NOT NULL DEFAULT 'UNPAID'
                     CHECK (payment_status IN ('UNPAID','PENDING','PAID','REFUND_PENDING')),
@@ -98,8 +98,11 @@ CREATE TABLE orders (
   promo_code      TEXT,
   stock_restored  BOOLEAN NOT NULL DEFAULT FALSE,
   contact         JSONB NOT NULL,
+  shipping_carrier TEXT NOT NULL DEFAULT '',
   tracking        TEXT NOT NULL DEFAULT '',
   note            TEXT NOT NULL DEFAULT '',
+  internal_note   TEXT NOT NULL DEFAULT '',
+  cancel_reason   TEXT NOT NULL DEFAULT '',
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   delivered_at    TIMESTAMPTZ,
@@ -108,6 +111,21 @@ CREATE TABLE orders (
 CREATE INDEX idx_orders_customer_id ON orders(customer_id);
 CREATE INDEX idx_orders_status      ON orders(status);
 CREATE INDEX idx_orders_created_at  ON orders(created_at DESC);
+
+CREATE TABLE order_events (
+  id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+  order_id    TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  actor       TEXT NOT NULL DEFAULT 'SYSTEM',
+  event_type  TEXT NOT NULL,
+  from_status TEXT,
+  to_status   TEXT,
+  note        TEXT NOT NULL DEFAULT '',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_order_events_order_id ON order_events(order_id);
+
+ALTER TABLE order_events ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE order_events FROM anon, authenticated;
 
 -- =============================================================
 -- ORDER ITEMS (snapshot tại thời điểm đặt hàng)
