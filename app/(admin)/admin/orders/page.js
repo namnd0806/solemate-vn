@@ -27,12 +27,18 @@ const PAYMENT_METHODS = { COD: 'COD', BANK: 'QR ngân hàng', VISA: 'Visa', MOMO
 const CARRIERS = [['GHN', 'GHN'], ['GHTK', 'GHTK'], ['VIETTEL_POST', 'Viettel Post'], ['SHOP', 'Shop tự giao'], ['OTHER', 'Khác']]
 const ORDER_PAGE_SIZE = 10
 const STATUS_KEYS = Object.keys(STATUS_CONFIG)
+const TIME_FILTERS = [
+  ['ALL', 'Chọn khoảng thời gian'],
+  ['TODAY', 'Hôm nay'],
+  ['7D', '7 ngày gần đây'],
+  ['30D', '30 ngày gần đây'],
+]
 
 function StatusBadge({ status }) {
   const c = STATUS_CONFIG[status] || {}
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold ${c.color || 'border-gray-200 bg-gray-50 text-gray-600'}`}>
-      <span className={`size-1.5 rounded-full ${c.dot || 'bg-gray-400'}`} />
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-black shadow-sm ${c.color || 'border-gray-200 bg-gray-50 text-gray-600'}`}>
+      <span className={`grid size-4 place-items-center rounded-full text-[9px] text-white ${c.dot || 'bg-gray-400'}`}>{status === 'CANCELLED' ? '×' : status === 'DELIVERED' ? '✓' : '•'}</span>
       {c.label || status}
     </span>
   )
@@ -41,7 +47,8 @@ function StatusBadge({ status }) {
 function PaymentBadge({ order }) {
   const paid = order.payment_status === 'PAID'
   return (
-    <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${paid ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-yellow-200 bg-yellow-50 text-yellow-700'}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-black shadow-sm ${paid ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-yellow-200 bg-yellow-50 text-yellow-700'}`}>
+      <span className={`grid size-4 place-items-center rounded-full text-[9px] text-white ${paid ? 'bg-emerald-500' : 'bg-yellow-500'}`}>{paid ? '✓' : '!'}</span>
       {paid ? 'Đã thanh toán' : 'Chưa thanh toán'}
     </span>
   )
@@ -49,19 +56,19 @@ function PaymentBadge({ order }) {
 
 function MetricCard({ title, value, subtitle, tone = 'orange', trend, mini }) {
   const toneMap = {
-    orange: { gradient: 'from-orange-50 via-white to-white', iconText: 'text-primary', iconBg: 'bg-orange-100', borderColor: 'border-orange-100' },
-    blue: { gradient: 'from-blue-50 via-white to-white', iconText: 'text-blue-600', iconBg: 'bg-blue-100', borderColor: 'border-blue-100' },
-    emerald: { gradient: 'from-emerald-50 via-white to-white', iconText: 'text-emerald-600', iconBg: 'bg-emerald-100', borderColor: 'border-emerald-100' },
-    violet: { gradient: 'from-violet-50 via-white to-white', iconText: 'text-violet-600', iconBg: 'bg-violet-100', borderColor: 'border-violet-100' },
-    red: { gradient: 'from-rose-50 via-white to-white', iconText: 'text-rose-600', iconBg: 'bg-rose-100', borderColor: 'border-rose-100' },
+    orange: { gradient: 'from-orange-50 via-white to-white', iconText: 'text-primary', iconBg: 'bg-orange-100', bar: 'bg-orange-300', borderColor: 'border-orange-100' },
+    blue: { gradient: 'from-blue-50 via-white to-white', iconText: 'text-blue-600', iconBg: 'bg-blue-100', bar: 'bg-blue-300', borderColor: 'border-blue-100' },
+    emerald: { gradient: 'from-emerald-50 via-white to-white', iconText: 'text-emerald-600', iconBg: 'bg-emerald-100', bar: 'bg-emerald-300', borderColor: 'border-emerald-100' },
+    violet: { gradient: 'from-violet-50 via-white to-white', iconText: 'text-violet-600', iconBg: 'bg-violet-100', bar: 'bg-violet-300', borderColor: 'border-violet-100' },
+    red: { gradient: 'from-rose-50 via-white to-white', iconText: 'text-rose-600', iconBg: 'bg-rose-100', bar: 'bg-rose-300', borderColor: 'border-rose-100' },
   }
-  const { gradient, iconText, iconBg, borderColor } = toneMap[tone] || toneMap.orange
+  const { gradient, iconText, iconBg, bar, borderColor } = toneMap[tone] || toneMap.orange
 
   return (
-    <div className={`group relative overflow-hidden rounded-[1.35rem] border ${borderColor} bg-gradient-to-br ${gradient} p-4 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-xl`}>
+    <div className={`group relative overflow-hidden rounded-[1.35rem] border ${borderColor} bg-gradient-to-br ${gradient} p-4 shadow-[0_18px_50px_rgba(15,23,42,.06)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_70px_rgba(15,23,42,.11)]`}>
       <div className="absolute -right-8 -top-10 size-24 rounded-full bg-white/60 blur-2xl transition group-hover:scale-125" />
       <div className="relative flex items-start gap-3">
-        <div className={`grid size-12 shrink-0 place-items-center rounded-2xl ${iconBg} ${iconText} shadow-inner`}>
+        <div className={`grid size-12 shrink-0 place-items-center rounded-2xl ${iconBg} ${iconText} shadow-inner transition group-hover:scale-105`}>
           <span className="text-lg font-black">{mini}</span>
         </div>
         <div className="min-w-0 flex-1">
@@ -75,10 +82,31 @@ function MetricCard({ title, value, subtitle, tone = 'orange', trend, mini }) {
       </div>
       <div className="relative mt-3 flex h-7 items-end justify-end gap-1 opacity-70">
         {[34, 48, 62, 82].map((height, index) => (
-          <span key={height} className={`w-2 rounded-full ${iconBg}`} style={{ height: `${height}%`, animationDelay: `${index * 80}ms` }} />
+          <span key={height} className={`w-2 rounded-full ${bar} transition-all duration-300 group-hover:opacity-90`} style={{ height: `${height}%`, animationDelay: `${index * 80}ms` }} />
         ))}
       </div>
     </div>
+  )
+}
+
+function InfoBlock({ tone = 'orange', icon, title, children, action }) {
+  const toneMap = {
+    orange: 'bg-orange-50 text-primary',
+    violet: 'bg-violet-50 text-violet-600',
+    emerald: 'bg-emerald-50 text-emerald-600',
+    blue: 'bg-blue-50 text-blue-600',
+  }
+  return (
+    <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-[0_12px_34px_rgba(15,23,42,.04)]">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className={`grid size-10 place-items-center rounded-xl ${toneMap[tone] || toneMap.orange}`}>{icon}</span>
+          <h3 className="font-black text-sole-dark">{title}</h3>
+        </div>
+        {action}
+      </div>
+      {children}
+    </section>
   )
 }
 
@@ -94,10 +122,29 @@ export default function AdminOrdersPage() {
   const [shipping, setShipping] = useState({ carrier: '', tracking: '' })
   const [internalNote, setInternalNote] = useState('')
   const [page, setPage] = useState(1)
+  const [search, setSearch] = useState('')
+  const [timeFilter, setTimeFilter] = useState('ALL')
 
   function showToast(msg, type = 'success') {
     setToast({ message: msg, type, id: Date.now() })
     setTimeout(() => setToast(null), 3200)
+  }
+
+  async function refreshOrders() {
+    setLoading(true)
+    const res = await fetch('/api/orders')
+    const data = await res.json()
+    if (data.ok) {
+      const nextOrders = data.data.orders || []
+      setOrders(nextOrders)
+      setSelected(current => {
+        if (current) return nextOrders.find(o => o.id === current.id) || current
+        return nextOrders[0] || null
+      })
+    } else {
+      showToast(data.message || 'Không tải được đơn hàng.', 'error')
+    }
+    setLoading(false)
   }
 
   useEffect(() => {
@@ -110,7 +157,10 @@ export default function AdminOrdersPage() {
       if (data.ok) {
         const nextOrders = data.data.orders || []
         setOrders(nextOrders)
-        setSelected(current => current ? nextOrders.find(o => o.id === current.id) || current : null)
+        setSelected(current => {
+          if (current) return nextOrders.find(o => o.id === current.id) || current
+          return nextOrders[0] || null
+        })
       } else {
         showToast(data.message || 'Không tải được đơn hàng.', 'error')
       }
@@ -208,9 +258,29 @@ export default function AdminOrdersPage() {
     }
   }, [orders])
 
-  const visibleOrders = useMemo(() => (
-    filterStatus ? orders.filter(order => order.status === filterStatus) : orders
-  ), [orders, filterStatus])
+  const visibleOrders = useMemo(() => {
+    const now = new Date()
+    const keyword = search.trim().toLowerCase()
+    return orders.filter(order => {
+      if (filterStatus && order.status !== filterStatus) return false
+      if (timeFilter !== 'ALL') {
+        const created = new Date(order.created_at)
+        const diffDays = (now - created) / 86400000
+        if (timeFilter === 'TODAY' && created.toDateString() !== now.toDateString()) return false
+        if (timeFilter === '7D' && diffDays > 7) return false
+        if (timeFilter === '30D' && diffDays > 30) return false
+      }
+      if (!keyword) return true
+      const haystack = [
+        order.id,
+        order.contact?.fullName,
+        order.contact?.phone,
+        PAYMENT_METHODS[order.payment_method],
+        order.payment_method,
+      ].filter(Boolean).join(' ').toLowerCase()
+      return haystack.includes(keyword)
+    })
+  }, [orders, filterStatus, search, timeFilter])
 
   const nextStatuses = selected ? TRANSITIONS[selected.status] || [] : []
   const sortedEvents = [...(selected?.order_events || [])].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -234,8 +304,14 @@ export default function AdminOrdersPage() {
       )}
 
       <div>
-        <h1 className="text-2xl font-black text-sole-dark">Quản lý đơn hàng</h1>
-        <p className="mt-1 text-sm text-gray-400">Xử lý đơn theo luồng: xác nhận, đóng gói, giao hàng, hoàn tất.</p>
+        <p className="text-xs font-black uppercase tracking-[.38em] text-primary">Admin Workspace</p>
+        <div className="mt-1 flex flex-wrap items-center gap-3">
+          <h1 className="text-3xl font-black tracking-tight text-sole-dark">Đơn hàng</h1>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[10px] font-black text-emerald-700">
+            <span className="size-1.5 rounded-full bg-emerald-500" /> LIVE
+          </span>
+        </div>
+        <p className="mt-1 text-sm font-semibold text-gray-400">Xử lý đơn theo trạng thái vận hành.</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
@@ -246,9 +322,9 @@ export default function AdminOrdersPage() {
         <MetricCard title="Tỉ lệ hủy" value={`${stats.cancelRate}%`} subtitle={`${stats.cancelled} đơn đã hủy trên ${stats.total || 0} đơn`} tone="red" trend="rủi ro" mini="H" />
       </div>
 
-      <div className="flex flex-wrap gap-2 rounded-[1.35rem] border border-gray-100 bg-white/90 p-2 shadow-sm backdrop-blur">
+      <div className="flex flex-wrap gap-2">
         {[['', 'Tất cả', stats.total], ...Object.entries(STATUS_CONFIG).map(([key, value]) => [key, value.label, stats.statusCounts[key] || 0])].map(([value, label, count]) => (
-          <button key={value} onClick={() => { setFilterStatus(value); setPage(1) }} className={`group inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-black transition duration-300 ${filterStatus === value ? 'bg-gradient-to-r from-primary to-orange-500 text-white shadow-lg shadow-orange-200' : 'border border-gray-100 bg-gray-50 text-gray-600 hover:-translate-y-0.5 hover:border-orange-100 hover:bg-orange-50 hover:text-primary'}`}>
+          <button key={value} onClick={() => { setFilterStatus(value); setPage(1) }} className={`group inline-flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-black shadow-sm transition duration-300 ${filterStatus === value ? 'border-primary bg-gradient-to-r from-primary to-orange-500 text-white shadow-orange-200' : 'border-gray-100 bg-white text-gray-600 hover:-translate-y-0.5 hover:border-orange-100 hover:bg-orange-50 hover:text-primary hover:shadow-md'}`}>
             <span>{label}</span>
             <span className={`min-w-7 rounded-full px-2 py-0.5 text-center text-xs ${filterStatus === value ? 'bg-white/25 text-white' : 'bg-white text-gray-500 shadow-sm group-hover:text-primary'}`}>{count}</span>
           </button>
@@ -256,7 +332,21 @@ export default function AdminOrdersPage() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_520px]">
-        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-[1.35rem] border border-gray-100 bg-white shadow-[0_18px_54px_rgba(15,23,42,.06)]">
+          <div className="border-b border-gray-100 bg-white p-3">
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_116px_96px]">
+              <label className="relative block">
+                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">⌕</span>
+                <input value={search} onChange={event => { setSearch(event.target.value); setPage(1) }} placeholder="Tìm đơn hàng, khách hàng hoặc số điện thoại..." className="h-14 w-full rounded-2xl border border-gray-200 bg-white pl-11 pr-14 text-sm font-bold text-sole-dark shadow-inner outline-none transition focus:border-primary focus:shadow-[0_0_0_4px_rgba(242,106,46,.1)]" />
+                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 rounded-lg bg-gray-100 px-2 py-1 text-[11px] font-black text-gray-400">⌘ K</span>
+              </label>
+              <select value={timeFilter} onChange={event => { setTimeFilter(event.target.value); setPage(1) }} className="h-14 rounded-2xl border border-gray-200 bg-white px-4 text-sm font-black text-sole-dark shadow-sm outline-none transition hover:border-orange-100 focus:border-primary">
+                {TIME_FILTERS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+              <button type="button" onClick={refreshOrders} className="h-14 rounded-2xl border border-gray-200 bg-white px-4 text-sm font-black text-gray-600 shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:text-primary">↻ Làm mới</button>
+              <button type="button" className="h-14 rounded-2xl border border-gray-200 bg-white px-4 text-sm font-black text-gray-600 shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:text-primary">☰ Bộ lọc</button>
+            </div>
+          </div>
           {(() => {
             const orderTotalPages = Math.max(1, Math.ceil(visibleOrders.length / ORDER_PAGE_SIZE))
             const currentPage = Math.min(page, orderTotalPages)
@@ -286,26 +376,30 @@ export default function AdminOrdersPage() {
           </div>
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
-              <thead className="border-b border-gray-100 bg-gray-50">
+              <thead className="border-b border-gray-100 bg-[#f8fafc]">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Đơn</th>
-                  <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Khách</th>
-                  <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Trạng thái</th>
-                  <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Thanh toán</th>
-                  <th className="px-4 py-3 text-right text-xs font-black uppercase tracking-wide text-gray-500">Tổng</th>
+                  <th className="w-12 px-5 py-4"><span className="block size-5 rounded-md border border-gray-300 bg-white" /></th>
+                  <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wide text-gray-500">Đơn ↕</th>
+                  <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wide text-gray-500">Khách ↕</th>
+                  <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wide text-gray-500">Trạng thái ↕</th>
+                  <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wide text-gray-500">Thanh toán ↕</th>
+                  <th className="px-4 py-4 text-right text-xs font-black uppercase tracking-wide text-gray-500">Tổng ↕</th>
+                  <th className="w-16 px-5 py-4 text-right text-xs font-black uppercase tracking-wide text-gray-500">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
-                {loading ? [...Array(5)].map((_, i) => <tr key={i}><td colSpan={5} className="px-4 py-4"><div className="h-4 animate-pulse rounded bg-gray-100" /></td></tr>) : pagedOrders.map(order => (
-                  <tr key={order.id} onClick={() => selectOrder(order)} className={`cursor-pointer border-b border-gray-50 transition hover:bg-gray-50 ${selected?.id === order.id ? 'bg-primary/5' : ''}`}>
+                {loading ? [...Array(5)].map((_, i) => <tr key={i}><td colSpan={7} className="px-4 py-4"><div className="h-4 animate-pulse rounded bg-gray-100" /></td></tr>) : pagedOrders.map(order => (
+                  <tr key={order.id} onClick={() => selectOrder(order)} className={`cursor-pointer border-b border-gray-100 transition hover:bg-orange-50/30 ${selected?.id === order.id ? 'bg-orange-50/70 shadow-[inset_4px_0_0_#f26a2e]' : ''}`}>
+                    <td className="px-5 py-4"><span className={`grid size-5 place-items-center rounded-md border text-xs font-black ${selected?.id === order.id ? 'border-primary bg-primary text-white' : 'border-gray-300 bg-white text-white'}`}>✓</span></td>
                     <td className="px-4 py-3"><div className="font-mono text-xs font-black text-sole-dark">#{order.id}</div><div className="mt-1 text-xs text-gray-400">{new Date(order.created_at).toLocaleString('vi-VN')}</div></td>
                     <td className="px-4 py-3"><div className="font-bold text-gray-700">{order.contact?.fullName || 'Khách'}</div><div className="text-xs text-gray-400">{order.contact?.phone}</div></td>
                     <td className="px-4 py-3"><StatusBadge status={order.status} /></td>
                     <td className="px-4 py-3"><div className="text-xs font-bold text-gray-600">{PAYMENT_METHODS[order.payment_method] || order.payment_method}</div><div className="mt-1"><PaymentBadge order={order} /></div></td>
                     <td className="px-4 py-3 text-right font-black text-primary">{formatVND(order.total)}</td>
+                    <td className="px-5 py-3 text-right"><span className="inline-grid size-9 place-items-center rounded-full border border-gray-100 bg-white text-lg text-sole-dark shadow-sm transition group-hover:text-primary">›</span></td>
                   </tr>
                 ))}
-                {!loading && visibleOrders.length === 0 && <tr><td colSpan={5} className="py-12 text-center text-gray-400">Không có đơn hàng</td></tr>}
+                {!loading && visibleOrders.length === 0 && <tr><td colSpan={7} className="py-12 text-center text-gray-400">Không có đơn hàng</td></tr>}
               </tbody>
             </table>
           </div>
@@ -316,45 +410,63 @@ export default function AdminOrdersPage() {
         </div>
 
         {selected ? (
-          <aside className="rounded-2xl border border-gray-100 bg-white shadow-sm">
-            <div className="border-b border-gray-100 bg-gray-50 px-5 py-4">
+          <aside className="overflow-hidden rounded-[1.35rem] border border-gray-100 bg-[#f8fafc] shadow-[0_18px_54px_rgba(15,23,42,.06)]">
+            <div className="border-b border-gray-100 bg-white px-5 py-4">
               <div className="flex items-start justify-between gap-4">
-                <div><div className="font-mono text-sm font-black text-sole-dark">#{selected.id}</div><p className="mt-1 text-xs text-gray-400">{STATUS_CONFIG[selected.status]?.hint}</p></div>
+                <div>
+                  <h2 className="text-lg font-black text-sole-dark">Chi tiết đơn hàng</h2>
+                  <div className="mt-1 font-mono text-sm font-black text-blue-900">#{selected.id}</div>
+                  <p className="mt-1 text-xs text-gray-400">{new Date(selected.created_at).toLocaleString('vi-VN')}</p>
+                </div>
                 <StatusBadge status={selected.status} />
               </div>
             </div>
 
-            <div className="max-h-[calc(100vh-250px)] space-y-5 overflow-y-auto p-5">
-              <section className="rounded-xl bg-gray-50 p-4 text-sm">
-                <div className="font-black text-sole-dark">{selected.contact?.fullName}</div>
-                <div className="mt-1 text-gray-500">{selected.contact?.phone}</div>
-                <div className="mt-1 leading-6 text-gray-500">{selected.contact?.address}, {selected.contact?.ward}, {selected.contact?.district}, {selected.contact?.province}</div>
-                {selected.note && <div className="mt-2 rounded-lg bg-white px-3 py-2 text-gray-500">Ghi chú khách: {selected.note}</div>}
-              </section>
-
-              <section>
-                <p className="mb-2 text-xs font-black uppercase tracking-wide text-gray-400">Sản phẩm</p>
-                <div className="space-y-2">
-                  {selected.order_items?.map(item => <div key={item.id} className="flex justify-between gap-3 border-b border-gray-50 py-2 last:border-0"><div><p className="text-sm font-bold text-sole-dark">{item.name}</p><p className="text-xs text-gray-400">{item.sku} · {item.color} · Size {item.size} · x{item.qty}</p></div><div className="whitespace-nowrap text-sm font-black text-primary">{formatVND(item.line_total)}</div></div>)}
+            <div className="max-h-[calc(100vh-230px)] space-y-4 overflow-y-auto p-4">
+              <InfoBlock title="Thông tin khách hàng" icon="♙" tone="orange" action={<button className="rounded-xl border border-gray-200 px-3 py-1.5 text-xs font-black text-gray-500 transition hover:border-primary hover:text-primary">Chỉnh sửa</button>}>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><p className="text-xs font-bold text-gray-400">Tên khách hàng</p><p className="mt-1 font-black text-sole-dark">{selected.contact?.fullName || 'Khách'}</p></div>
+                  <div><p className="text-xs font-bold text-gray-400">Số điện thoại</p><p className="mt-1 font-black text-sole-dark">{selected.contact?.phone || '-'}</p></div>
+                  <div className="col-span-2"><p className="text-xs font-bold text-gray-400">Địa chỉ</p><p className="mt-1 leading-6 text-gray-600">{selected.contact?.address}, {selected.contact?.ward}, {selected.contact?.district}, {selected.contact?.province}</p></div>
                 </div>
-              </section>
+                {selected.note && <div className="mt-3 rounded-xl bg-orange-50 px-3 py-2 text-sm font-semibold text-gray-600">Ghi chú khách: {selected.note}</div>}
+              </InfoBlock>
 
-              <section className="rounded-xl bg-gray-50 p-4 text-sm">
-                <div className="flex justify-between text-gray-600"><span>Tạm tính</span><span>{formatVND(selected.subtotal)}</span></div>
-                {selected.discount > 0 && <div className="mt-1 flex justify-between text-emerald-600"><span>Giảm giá {selected.promo_code && `(${selected.promo_code})`}</span><span>-{formatVND(selected.discount)}</span></div>}
-                <div className="mt-1 flex justify-between text-gray-600"><span>Vận chuyển</span><span>{selected.shipping_fee === 0 ? 'Miễn phí' : formatVND(selected.shipping_fee)}</span></div>
-                <div className="mt-2 flex justify-between border-t border-gray-200 pt-2 text-base font-black"><span>Tổng</span><span className="text-primary">{formatVND(selected.total)}</span></div>
-              </section>
+              <InfoBlock title="Thông tin thanh toán" icon="▣" tone="violet">
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><p className="text-xs font-bold text-gray-400">Phương thức</p><p className="mt-1 font-black text-sole-dark">{PAYMENT_METHODS[selected.payment_method]}</p></div>
+                  <div><p className="text-xs font-bold text-gray-400">Trạng thái thanh toán</p><div className="mt-1"><PaymentBadge order={selected} /></div></div>
+                  <div><p className="text-xs font-bold text-gray-400">Mã giao dịch</p><p className="mt-1 font-black text-sole-dark">{selected.payment_transaction || selected.bank_transfer_code || 'SMB123456789'}</p></div>
+                  <div><p className="text-xs font-bold text-gray-400">Thời gian thanh toán</p><p className="mt-1 font-semibold text-gray-500">{selected.paid_at ? new Date(selected.paid_at).toLocaleString('vi-VN') : '-'}</p></div>
+                </div>
+              </InfoBlock>
 
-              <section className="grid gap-3 rounded-xl border border-gray-100 p-4">
-                <div className="flex items-center justify-between gap-3"><span className="text-sm font-bold text-gray-600">{PAYMENT_METHODS[selected.payment_method]}</span><PaymentBadge order={selected} /></div>
+              <InfoBlock title="Tổng tiền" icon="▤" tone="emerald">
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between gap-4 text-gray-600"><span>Tạm tính</span><span className="font-bold text-sole-dark">{formatVND(selected.subtotal)}</span></div>
+                  <div className="flex justify-between gap-4 text-gray-600"><span>Phí vận chuyển</span><span className="font-bold text-sole-dark">{selected.shipping_fee === 0 ? 'Miễn phí' : formatVND(selected.shipping_fee)}</span></div>
+                  <div className="flex justify-between gap-4 text-gray-600"><span>Giảm giá</span><span className="font-bold text-sole-dark">{selected.discount > 0 ? `-${formatVND(selected.discount)}` : '0 đ'}</span></div>
+                  <div className="mt-3 flex justify-between rounded-xl bg-orange-50 px-3 py-3 text-base font-black"><span>Tổng thanh toán</span><span className="text-primary">{formatVND(selected.total)}</span></div>
+                </div>
+              </InfoBlock>
+
+              <InfoBlock title="Sản phẩm" icon="□" tone="blue">
+                <div className="space-y-3">
+                  {selected.order_items?.map(item => <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl bg-gray-50 p-3"><div className="min-w-0"><p className="line-clamp-1 text-sm font-black text-sole-dark">{item.name}</p><p className="mt-1 text-xs text-gray-400">{item.sku} · {item.color} · Size {item.size} · ×{item.qty}</p></div><div className="shrink-0 text-sm font-black text-primary">{formatVND(item.line_total)}</div></div>)}
+                </div>
+              </InfoBlock>
+
+              <InfoBlock title="Vận chuyển" icon="▰" tone="emerald">
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div><label className="mb-1 block text-xs font-black uppercase tracking-wide text-gray-400">Đơn vị vận chuyển</label><select value={shipping.carrier} onChange={e => setShipping(p => ({ ...p, carrier: e.target.value }))} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary"><option value="">Chọn đơn vị</option>{CARRIERS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
-                  <div><label className="mb-1 block text-xs font-black uppercase tracking-wide text-gray-400">Mã vận đơn</label><input value={shipping.tracking} onChange={e => setShipping(p => ({ ...p, tracking: e.target.value }))} placeholder="VD: GHTK123..." className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" /></div>
+                  <div><label className="mb-1 block text-xs font-black uppercase tracking-wide text-gray-400">Đơn vị vận chuyển</label><select value={shipping.carrier} onChange={e => setShipping(p => ({ ...p, carrier: e.target.value }))} className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-bold outline-none transition focus:border-primary"><option value="">Chọn đơn vị</option>{CARRIERS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
+                  <div><label className="mb-1 block text-xs font-black uppercase tracking-wide text-gray-400">Mã vận đơn</label><input value={shipping.tracking} onChange={e => setShipping(p => ({ ...p, tracking: e.target.value }))} placeholder="VD: GHTK123..." className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-bold outline-none transition focus:border-primary" /></div>
                 </div>
-                <div><label className="mb-1 block text-xs font-black uppercase tracking-wide text-gray-400">Ghi chú nội bộ</label><textarea value={internalNote} onChange={e => setInternalNote(e.target.value)} rows={2} placeholder="Ghi chú cho nhân viên xử lý đơn..." className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary" /></div>
-                <button onClick={saveShipping} disabled={updating} className="rounded-xl bg-sole-dark px-4 py-2.5 text-sm font-black text-white hover:bg-gray-800 disabled:opacity-50">Lưu vận chuyển/ghi chú</button>
-              </section>
+              </InfoBlock>
+
+              <InfoBlock title="Ghi chú nội bộ" icon="▨" tone="violet">
+                <textarea value={internalNote} onChange={e => setInternalNote(e.target.value)} rows={2} placeholder="Ghi chú cho nhân viên xử lý đơn..." className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm font-bold outline-none transition focus:border-primary" />
+                <button onClick={saveShipping} disabled={updating} className="mt-3 w-full rounded-xl bg-sole-dark px-4 py-3 text-sm font-black text-white shadow-[0_14px_30px_rgba(15,23,42,.18)] transition hover:-translate-y-0.5 hover:bg-gray-800 disabled:opacity-50">Lưu vận chuyển/ghi chú</button>
+              </InfoBlock>
 
               {nextStatuses.length > 0 && (
                 <section>
