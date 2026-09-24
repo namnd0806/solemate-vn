@@ -1,5 +1,6 @@
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { formatVND } from '@/lib/utils'
+import Link from 'next/link'
 
 export const metadata = { title: 'Dashboard – Admin SoleMate VN' }
 
@@ -130,6 +131,14 @@ export default async function DashboardPage() {
         <h1 className="mt-1 text-4xl font-black tracking-[-.04em] text-sole-dark">Dashboard</h1>
         <p className="mt-2 text-sm text-gray-400">Tổng quan vận hành, doanh thu đã giao và các điểm cần xử lý nhanh.</p>
         </div>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/admin/orders" className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-5 text-sm font-black text-gray-600 shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:text-primary hover:shadow-[0_12px_28px_rgba(20,23,28,.09)]">
+            Xử lý đơn
+          </Link>
+          <Link href="/admin/inventory" className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-[#ff4f24] px-5 text-sm font-black text-white shadow-[0_12px_26px_rgba(242,106,46,.25)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(242,106,46,.32)]">
+            Kiểm tra kho
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-4">
@@ -186,7 +195,7 @@ export default async function DashboardPage() {
         </section>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,.75fr)]">
+      <div className="grid items-start gap-6 xl:grid-cols-3">
         <section className="overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-[0_18px_55px_rgba(20,23,28,.07)]">
           <div className="border-b border-gray-100 p-5">
             <h2 className="font-black text-sole-dark">Sản phẩm bán chạy</h2>
