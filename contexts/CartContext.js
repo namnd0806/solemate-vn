@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
+import { getEffectivePrice } from '@/lib/pricing'
 
 const CartContext = createContext(null)
 const CART_KEY = 'smvn_cart'
@@ -50,7 +51,7 @@ export function CartProvider({ children }) {
         return { ok: false, message: `Chỉ còn ${variant.stock} sản phẩm trong kho.` }
       }
 
-      const unitPrice = variant.sale_price || variant.price || data.sale_price || data.price
+      const unitPrice = getEffectivePrice(data, variant)
 
       setItems(prev => {
         const idx = prev.findIndex(i => i.sku === sku)
@@ -96,16 +97,18 @@ export function CartProvider({ children }) {
     try {
       const res = await fetch(`/api/products/${item.productId}`)
       const { ok, data } = await res.json()
-      if (ok && data) {
-        const variant = data.variants?.find(v => v.sku === sku)
-        if (variant && newQty > variant.stock) {
-          return { ok: false, message: `Chỉ còn ${variant.stock} sản phẩm trong kho.` }
-        }
+      if (!ok || !data) return { ok: false, message: 'Không thể kiểm tra sản phẩm lúc này.' }
+      const variant = data.variants?.find(v => v.sku === sku)
+      if (!variant || variant.status !== 'ACTIVE') return { ok: false, message: 'Sản phẩm này hiện không còn bán.' }
+      if (newQty > variant.stock) {
+        return { ok: false, message: `Chỉ còn ${variant.stock} sản phẩm trong kho.` }
       }
-    } catch {}
-
-    setItems(prev => prev.map(i => i.sku === sku ? { ...i, qty: newQty } : i))
-    return { ok: true }
+      const currentPrice = getEffectivePrice(data, variant)
+      setItems(prev => prev.map(i => i.sku === sku ? { ...i, qty: newQty, price: currentPrice, stock: variant.stock } : i))
+      return { ok: true }
+    } catch {
+      return { ok: false, message: 'Không thể kiểm tra tồn kho. Vui lòng thử lại.' }
+    }
   }
 
   function clearCart() {

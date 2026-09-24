@@ -2,15 +2,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth'
 import AdminHeader from '@/components/admin/AdminHeader'
-import Link from 'next/link'
-
-const NAV = [
-  { href: '/admin/dashboard', label: '📊 Dashboard' },
-  { href: '/admin/products', label: '👟 Sản phẩm' },
-  { href: '/admin/inventory', label: '📦 Kho hàng' },
-  { href: '/admin/orders', label: '🛒 Đơn hàng' },
-  { href: '/admin/promotions', label: '🏷️ Khuyến mãi' },
-]
+import AdminNav from '@/components/admin/AdminNav'
 
 export default async function AdminLayout({ children }) {
   const cookieStore = await cookies()
@@ -29,20 +21,13 @@ export default async function AdminLayout({ children }) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-sole-gray">
+    <div className="min-h-screen bg-[#f7f8f9]">
       <AdminHeader admin={admin} />
-      <div className="flex flex-1">
-        <aside className="w-56 bg-white border-r border-gray-100 shadow-sm flex-shrink-0">
-          <nav className="p-4 space-y-1">
-            {NAV.map(n => (
-              <Link key={n.href} href={n.href}
-                className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-sole-gray hover:text-primary transition-colors">
-                {n.label}
-              </Link>
-            ))}
-          </nav>
+      <div className="flex min-h-[calc(100vh-68px)]">
+        <aside className="sticky top-[68px] hidden h-[calc(100vh-68px)] w-60 flex-shrink-0 border-r border-white/5 bg-[#111315] lg:block">
+          <AdminNav />
         </aside>
-        <main className="flex-1 p-6 overflow-auto">{children}</main>
+        <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
   )

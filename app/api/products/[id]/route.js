@@ -5,7 +5,8 @@ import { getAdminFromRequest } from '@/lib/auth'
 export async function GET(request, { params }) {
   try {
     const { id } = await params
-    const result = await getProductById(id)
+    const admin = await getAdminFromRequest(request)
+    const result = await getProductById(id, { allowInactive: Boolean(admin) })
     if (!result.ok) return NextResponse.json(result, { status: 404 })
     return NextResponse.json(result)
   } catch (err) {

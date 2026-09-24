@@ -9,6 +9,7 @@ import { formatVND } from '@/lib/utils'
 import ShoeSvg from '@/components/store/ShoeSvg'
 import Toast from '@/components/store/Toast'
 import { ArrowRightIcon, HeartIcon, RefreshIcon, ShieldIcon, TruckIcon } from '@/components/store/Icons'
+import { getEffectivePrice } from '@/lib/pricing'
 
 export default function PDPPage() {
   const { slug } = useParams()
@@ -78,7 +79,7 @@ export default function PDPPage() {
   const activeVariants = product.variants.filter(variant => variant.status === 'ACTIVE')
   const colors = [...new Set(activeVariants.map(variant => variant.color))]
   const sizesForColor = activeVariants.filter(variant => variant.color === selectedColor)
-  const displayPrice = selectedVariant?.sale_price || selectedVariant?.price || product.sale_price || product.price
+  const displayPrice = getEffectivePrice(product, selectedVariant)
   const originalPrice = selectedVariant?.price || product.price
   const hasSale = displayPrice < originalPrice
   const outOfStock = !selectedVariant || selectedVariant.stock === 0

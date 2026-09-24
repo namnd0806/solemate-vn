@@ -17,7 +17,7 @@ export async function POST(request) {
       return NextResponse.json({ ok: false, message: 'Số lượng điều chỉnh phải là số nguyên khác 0.' }, { status: 400 })
     }
 
-    const result = await adjustStock({ sku: sku.trim(), delta: Number(delta), note: note || '' })
+    const result = await adjustStock({ sku: sku.trim(), delta: Number(delta), note: note || '', actor: admin.email || 'ADMIN' })
     if (!result.ok) return NextResponse.json(result, { status: 400 })
     return NextResponse.json(result)
   } catch (err) {

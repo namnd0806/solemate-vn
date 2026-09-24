@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { formatVND } from '@/lib/utils'
-import Image from 'next/image'
+import Link from 'next/link'
+import { isProductSaleActive } from '@/lib/pricing'
 
 const EMPTY_PRODUCT = {
   name: '', slug: '', brand: '', gender: 'NAM', category: 'LIFESTYLE',
-  price: '', sale_price: '', accent: '#e8642a', description: '',
+  price: '', sale_price: '', sale_start_at: '', sale_end_at: '', accent: '#e8642a', description: '',
   status: 'ACTIVE', featured: false, best_seller: false, image_url: '',
 }
 const EMPTY_VARIANT = { sku: '', color: '', size: '', stock: '0', status: 'ACTIVE' }
@@ -43,7 +44,10 @@ export default function AdminProductsPage() {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    const timer = setTimeout(load, 0)
+    return () => clearTimeout(timer)
+  }, [])
 
   function showToast(msg, type = 'success') {
     setToast({ msg, type })
@@ -62,6 +66,7 @@ export default function AdminProductsPage() {
     setForm({
       name: p.name, slug: p.slug, brand: p.brand, gender: p.gender,
       category: p.category, price: p.price, sale_price: p.sale_price || '',
+      sale_start_at: p.sale_start_at?.slice(0, 16) || '', sale_end_at: p.sale_end_at?.slice(0, 16) || '',
       accent: p.accent, description: p.description || '', status: p.status,
       featured: p.featured, best_seller: p.best_seller, image_url: p.image_url || '',
     })
@@ -89,7 +94,13 @@ export default function AdminProductsPage() {
     setSaving(true)
     setError('')
     const payload = {
-      product: { ...form, price: Number(form.price), sale_price: form.sale_price ? Number(form.sale_price) : null },
+      product: {
+        ...form,
+        price: Number(form.price),
+        sale_price: form.sale_price ? Number(form.sale_price) : null,
+        sale_start_at: form.sale_start_at || null,
+        sale_end_at: form.sale_end_at || null,
+      },
       variants: variants.map(v => ({ ...v, stock: Number(v.stock) })),
     }
     const url = editing ? `/api/products/${editing}` : '/api/products'
@@ -183,6 +194,7 @@ export default function AdminProductsPage() {
                   <div className="w-full h-full flex items-center justify-center text-5xl opacity-30">👟</div>
                 )}
                 <div className="absolute top-2 right-2 flex gap-1">
+                  {isProductSaleActive(p) && <span className="px-2 py-0.5 rounded-full bg-red-500 text-white text-xs font-bold">SALE</span>}
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${p.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
                     {p.status === 'ACTIVE' ? 'Đang bán' : 'Đã ẩn'}
                   </span>
@@ -193,8 +205,8 @@ export default function AdminProductsPage() {
                 <p className="text-xs text-gray-400 uppercase tracking-wide">{p.brand} · {p.gender}</p>
                 <h3 className="font-semibold text-sole-dark mt-0.5 mb-2 line-clamp-1">{p.name}</h3>
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="text-primary font-bold">{formatVND(p.sale_price || p.price)}</span>
-                  {p.sale_price && <span className="text-xs text-gray-400 line-through">{formatVND(p.price)}</span>}
+                  <span className="text-primary font-bold">{formatVND(isProductSaleActive(p) ? p.sale_price : p.price)}</span>
+                  {isProductSaleActive(p) && <span className="text-xs text-gray-400 line-through">{formatVND(p.price)}</span>}
                 </div>
                 <p className="text-xs text-gray-400 mb-3">{p.variants?.length || 0} biến thể</p>
 
@@ -307,6 +319,20 @@ export default function AdminProductsPage() {
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
                 </div>
                 <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Bắt đầu sale</label>
+                  <input type="datetime-local" value={form.sale_start_at}
+                    onChange={e => setForm(p => ({ ...p, sale_start_at: e.target.value }))}
+                    disabled={!form.sale_price}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary disabled:bg-gray-50 disabled:text-gray-400" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Kết thúc sale</label>
+                  <input type="datetime-local" value={form.sale_end_at}
+                    onChange={e => setForm(p => ({ ...p, sale_end_at: e.target.value }))}
+                    disabled={!form.sale_price}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary disabled:bg-gray-50 disabled:text-gray-400" />
+                </div>
+                <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">Màu accent</label>
                   <div className="flex gap-2">
                     <input type="color" value={form.accent} onChange={e => setForm(p => ({ ...p, accent: e.target.value }))}
@@ -355,17 +381,18 @@ export default function AdminProductsPage() {
                       {[['sku','SKU',2],['color','Màu',1],['size','Size',1]].map(([k,l,cols]) => (
                         <input key={k} placeholder={l} value={v[k]}
                           onChange={e => { const nv=[...variants]; nv[i]={...nv[i],[k]:e.target.value}; setVariants(nv) }}
-                          className={`col-span-${cols} border border-gray-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-primary transition-all`} />
+                          className={`${cols === 2 ? 'col-span-2' : 'col-span-1'} border border-gray-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-primary transition-all`} />
                       ))}
-                      <input type="number" placeholder="Tồn kho" value={v.stock}
+                      <input type="number" placeholder="Tồn kho" value={v.stock} disabled={Boolean(editing)}
                         onChange={e => { const nv=[...variants]; nv[i]={...nv[i],stock:e.target.value}; setVariants(nv) }}
-                        className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-primary transition-all" />
+                        className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-primary transition-all disabled:bg-gray-100 disabled:text-gray-400" />
                       <button type="button" onClick={() => setVariants(v => v.filter((_,j) => j !== i))}
                         disabled={variants.length === 1}
                         className="text-red-400 hover:text-red-600 disabled:opacity-30 text-sm">✕</button>
                     </div>
                   ))}
                 </div>
+                {editing && <p className="mt-2 text-xs text-gray-400">Tồn kho chỉ được thay đổi tại <Link href="/admin/inventory" className="font-semibold text-primary hover:underline">màn Kho hàng</Link> để luôn có lịch sử.</p>}
               </div>
 
               {error && <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl px-4 py-3 text-sm">{error}</div>}

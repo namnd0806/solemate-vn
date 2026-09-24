@@ -41,13 +41,16 @@ CREATE TABLE IF NOT EXISTS products (
   category    TEXT NOT NULL CHECK (category IN ('LIFESTYLE','RUNNING')),
   price       INTEGER NOT NULL CHECK (price > 0),
   sale_price  INTEGER CHECK (sale_price IS NULL OR sale_price < price),
+  sale_start_at TIMESTAMPTZ,
+  sale_end_at   TIMESTAMPTZ,
   accent      TEXT NOT NULL DEFAULT '#171717',
   description TEXT,
   status      TEXT NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE','INACTIVE')),
   featured    BOOLEAN NOT NULL DEFAULT FALSE,
   best_seller BOOLEAN NOT NULL DEFAULT FALSE,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT products_sale_dates_check CHECK (sale_end_at IS NULL OR sale_start_at IS NULL OR sale_end_at > sale_start_at)
 );
 CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);
 CREATE INDEX IF NOT EXISTS idx_products_brand  ON products(brand);
@@ -120,6 +123,15 @@ CREATE TABLE IF NOT EXISTS order_events (
 CREATE INDEX IF NOT EXISTS idx_order_events_order_id ON order_events(order_id);
 
 ALTER TABLE order_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE variants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE promotions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE stock_movements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE wishlists ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE order_events FROM anon, authenticated;
 
 -- =============================================================
@@ -177,6 +189,7 @@ CREATE TABLE IF NOT EXISTS stock_movements (
   after        INTEGER NOT NULL,
   ref          TEXT,
   note         TEXT NOT NULL DEFAULT '',
+  actor        TEXT NOT NULL DEFAULT 'SYSTEM',
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_movements_sku        ON stock_movements(sku);
@@ -193,3 +206,4 @@ CREATE TABLE IF NOT EXISTS wishlists (
   UNIQUE (user_id, product_id)
 );
 CREATE INDEX IF NOT EXISTS idx_wishlists_user_id ON wishlists(user_id);
+CREATE INDEX IF NOT EXISTS idx_wishlists_product_id ON wishlists(product_id);

@@ -6,11 +6,12 @@ import { useRouter } from 'next/navigation'
 import { formatVND } from '@/lib/utils'
 import ShoeSvg from './ShoeSvg'
 import { ArrowRightIcon, HeartIcon } from './Icons'
+import { getEffectivePrice, isProductSaleActive } from '@/lib/pricing'
 
 export default function ProductCard({ product, isWishlisted = false, onWishlistToggle }) {
   const router = useRouter()
-  const displayPrice = product.sale_price || product.price
-  const hasSale = Boolean(product.sale_price)
+  const displayPrice = getEffectivePrice(product)
+  const hasSale = isProductSaleActive(product)
 
   function handleWishlist() {
     if (onWishlistToggle) onWishlistToggle(product.id)

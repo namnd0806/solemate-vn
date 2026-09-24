@@ -42,7 +42,7 @@ export default function StockAdjustModal({ variants, onClose, onSuccess }) {
             <label className="block text-sm font-medium text-gray-700 mb-1">SKU</label>
             <select value={sku} onChange={e => setSku(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" required>
               {variants?.map(v => (
-                <option key={v.sku} value={v.sku}>{v.sku} (tồn kho: {v.stock})</option>
+                <option key={v.sku} value={v.sku}>{v.sku} · {v.productName} (tồn: {v.stock})</option>
               ))}
             </select>
           </div>
@@ -65,6 +65,7 @@ export default function StockAdjustModal({ variants, onClose, onSuccess }) {
               onChange={e => setNote(e.target.value)}
               placeholder="Lý do điều chỉnh..."
               className="w-full border rounded-lg px-3 py-2 text-sm"
+              required
             />
           </div>
           {error && <p className="text-red-600 text-sm">{error}</p>}

@@ -27,6 +27,8 @@ DECLARE
   v_order_id    TEXT;
   v_item        JSONB;
   v_variant     variants%ROWTYPE;
+  v_product     products%ROWTYPE;
+  v_unit_price  INTEGER;
   v_promo       promotions%ROWTYPE;
   v_discount    INTEGER := 0;
   v_subtotal    INTEGER := 0;
@@ -50,11 +52,26 @@ BEGIN
       RAISE EXCEPTION 'SKU % không còn khả dụng', v_item->>'sku';
     END IF;
 
+    SELECT * INTO v_product FROM products
+    WHERE id = v_variant.product_id AND status = 'ACTIVE';
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Sản phẩm của SKU % đang tạm ẩn', v_variant.sku;
+    END IF;
+
     IF v_variant.stock < (v_item->>'qty')::INTEGER THEN
       RAISE EXCEPTION 'SKU % chỉ còn % sản phẩm', v_variant.sku, v_variant.stock;
     END IF;
 
-    v_subtotal := v_subtotal + (v_item->>'line_total')::INTEGER;
+    v_unit_price := COALESCE(
+      v_variant.sale_price,
+      v_variant.price,
+      CASE WHEN v_product.sale_price IS NOT NULL
+             AND (v_product.sale_start_at IS NULL OR v_product.sale_start_at <= NOW())
+             AND (v_product.sale_end_at IS NULL OR v_product.sale_end_at >= NOW())
+           THEN v_product.sale_price END,
+      v_product.price
+    );
+    v_subtotal := v_subtotal + v_unit_price * (v_item->>'qty')::INTEGER;
   END LOOP;
 
   -- Validate promotion
@@ -121,24 +138,35 @@ BEGIN
   -- Insert items + decrement stock + insert movements
   FOR v_item IN SELECT * FROM jsonb_array_elements(payload->'items')
   LOOP
+    SELECT * INTO v_variant FROM variants WHERE sku = v_item->>'sku';
+    SELECT * INTO v_product FROM products WHERE id = v_variant.product_id;
+    v_unit_price := COALESCE(
+      v_variant.sale_price,
+      v_variant.price,
+      CASE WHEN v_product.sale_price IS NOT NULL
+             AND (v_product.sale_start_at IS NULL OR v_product.sale_start_at <= NOW())
+             AND (v_product.sale_end_at IS NULL OR v_product.sale_end_at >= NOW())
+           THEN v_product.sale_price END,
+      v_product.price
+    );
     INSERT INTO order_items (order_id, product_id, slug, name, brand, sku, color, size, qty, unit_price, line_total)
     VALUES (
       v_order_id,
-      v_item->>'product_id', v_item->>'slug', v_item->>'name', v_item->>'brand',
-      v_item->>'sku', v_item->>'color', v_item->>'size',
-      (v_item->>'qty')::INTEGER, (v_item->>'unit_price')::INTEGER, (v_item->>'line_total')::INTEGER
+      v_product.id, v_product.slug, v_product.name, v_product.brand,
+      v_variant.sku, v_variant.color, v_variant.size,
+      (v_item->>'qty')::INTEGER, v_unit_price, v_unit_price * (v_item->>'qty')::INTEGER
     );
 
     UPDATE variants SET stock = stock - (v_item->>'qty')::INTEGER,
                         updated_at = NOW()
     WHERE sku = v_item->>'sku';
 
-    INSERT INTO stock_movements (sku, product_id, product_name, type, delta, before, after, ref, note)
-    SELECT v_item->>'sku', v_item->>'product_id', v_item->>'name',
+    INSERT INTO stock_movements (sku, product_id, product_name, type, delta, before, after, ref, note, actor)
+    SELECT v_variant.sku, v_product.id, v_product.name,
            'SALE', -(v_item->>'qty')::INTEGER,
            (SELECT stock + (v_item->>'qty')::INTEGER FROM variants WHERE sku = v_item->>'sku'),
            (SELECT stock FROM variants WHERE sku = v_item->>'sku'),
-           v_order_id, 'Trừ kho khi đặt hàng thành công';
+           v_order_id, 'Trừ kho khi đặt hàng thành công', 'SYSTEM';
   END LOOP;
 
   -- Increment promo usage
