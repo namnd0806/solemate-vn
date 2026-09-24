@@ -1,13 +1,15 @@
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { formatVND } from '@/lib/utils'
-import Link from 'next/link'
 
 export const metadata = { title: 'Dashboard – Admin SoleMate VN' }
 
 async function getDashboardData() {
   const supabase = getSupabaseServerClient()
   const [ordersRes, settingsRes] = await Promise.all([
-    supabase.from('orders').select('id, status, total, created_at, contact, payment_method, payment_status').order('created_at', { ascending: false }),
+    supabase
+      .from('orders')
+      .select('id, status, total, created_at, contact, payment_method, payment_status, order_items(product_id, name, qty, line_total)')
+      .order('created_at', { ascending: false }),
     supabase.from('settings').select('*').single(),
   ])
 
@@ -44,7 +46,22 @@ async function getDashboardData() {
     .lte('stock', settings.low_stock_threshold)
     .order('stock', { ascending: true })
 
-  return { revenue, pending, statusBreakdown, days, lowStock: lowStock || [], recentOrders: orders.slice(0, 6), todayOrders, todayRevenue }
+  const bestSellerMap = new Map()
+  orders
+    .filter(order => order.status === 'DELIVERED')
+    .flatMap(order => order.order_items || [])
+    .forEach(item => {
+      const key = item.product_id || item.name
+      const current = bestSellerMap.get(key) || { id: key, name: item.name, qty: 0, revenue: 0 }
+      current.qty += Number(item.qty) || 0
+      current.revenue += Number(item.line_total) || 0
+      bestSellerMap.set(key, current)
+    })
+  const bestSellers = Array.from(bestSellerMap.values())
+    .sort((a, b) => b.qty - a.qty || b.revenue - a.revenue)
+    .slice(0, 5)
+
+  return { revenue, pending, statusBreakdown, days, lowStock: lowStock || [], recentOrders: orders.slice(0, 6), todayOrders, todayRevenue, bestSellers }
 }
 
 const STATUS_VN = { PENDING: 'Chờ xác nhận', CONFIRMED: 'Đã xác nhận', PACKING: 'Đang đóng gói', SHIPPING: 'Đang giao', DELIVERED: 'Đã giao', CANCELLED: 'Đã hủy' }
@@ -85,7 +102,7 @@ function DashboardMetric({ label, value, hint, tone, path, trend }) {
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
-            <p className="text-3xl font-black leading-none tracking-tight text-sole-dark">{value}</p>
+            <p className="whitespace-nowrap text-2xl font-black leading-none tracking-tight text-sole-dark 2xl:text-3xl">{value}</p>
             <span className={`rounded-full px-3 py-1 text-xs font-black shadow-sm ${iconTone[tone]}`}>{trend}</span>
           </div>
           <p className="mt-3 text-base font-black text-sole-dark">{label}</p>
@@ -100,7 +117,7 @@ function DashboardMetric({ label, value, hint, tone, path, trend }) {
 }
 
 export default async function DashboardPage() {
-  const { revenue, pending, statusBreakdown, days, lowStock, recentOrders, todayOrders, todayRevenue } = await getDashboardData()
+  const { revenue, pending, statusBreakdown, days, lowStock, recentOrders, todayOrders, todayRevenue, bestSellers } = await getDashboardData()
   const maxRevenue = Math.max(...days.map(d => d.revenue), 1)
   const totalOrders = Object.values(statusBreakdown).reduce((a, b) => a + b, 0)
   const visibleLowStock = lowStock.slice(0, 8)
@@ -111,21 +128,13 @@ export default async function DashboardPage() {
         <div>
         <p className="text-xs font-black uppercase tracking-[.24em] text-primary">Admin workspace</p>
         <h1 className="mt-1 text-4xl font-black tracking-[-.04em] text-sole-dark">Dashboard</h1>
-        <p className="mt-2 text-sm text-gray-400">Tổng quan vận hành, doanh thu và các điểm cần xử lý nhanh.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/admin/orders" className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-5 text-sm font-black text-gray-600 shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:text-primary">
-            Xử lý đơn
-          </Link>
-          <Link href="/admin/inventory" className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-[#ff4f24] px-5 text-sm font-black text-white shadow-[0_12px_26px_rgba(242,106,46,.25)] transition hover:-translate-y-0.5">
-            Kiểm tra kho
-          </Link>
+        <p className="mt-2 text-sm text-gray-400">Tổng quan vận hành, doanh thu đã giao và các điểm cần xử lý nhanh.</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-4">
         {[
-          { label: 'Doanh thu đã giao', value: formatVND(revenue), hint: `Hôm nay ${formatVND(todayRevenue)}`, tone: 'green', trend: '+12%', path: 'M5 12h14M12 5v14' },
+          { label: 'Tổng doanh thu đã giao', value: formatVND(revenue), hint: `Đơn giao hôm nay: ${formatVND(todayRevenue)}`, tone: 'green', trend: 'DELIVERED', path: 'M5 12h14M12 5v14' },
           { label: 'Đơn cần xử lý', value: pending, hint: 'Chờ xác nhận, đóng gói', tone: 'orange', trend: pending ? `+${pending}` : '0', path: 'M12 6v6l4 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z' },
           { label: 'SKU tồn thấp', value: lowStock.length, hint: 'Cần kiểm tra nhập hàng', tone: 'red', trend: lowStock.length ? `+${lowStock.length}` : '0%', path: 'M12 9v4m0 4h.01M10.3 4.3 2.8 17.5A2 2 0 0 0 4.5 20h15a2 2 0 0 0 1.7-2.5L13.7 4.3a2 2 0 0 0-3.4 0Z' },
           { label: 'Tổng đơn hàng', value: totalOrders, hint: `Hôm nay ${todayOrders} đơn`, tone: 'blue', trend: '+18%', path: 'M4 7 12 3l8 4-8 4-8-4Zm0 0v10l8 4 8-4V7M12 11v10' },
@@ -179,12 +188,43 @@ export default async function DashboardPage() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,.75fr)]">
         <section className="overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-[0_18px_55px_rgba(20,23,28,.07)]">
+          <div className="border-b border-gray-100 p-5">
+            <h2 className="font-black text-sole-dark">Sản phẩm bán chạy</h2>
+            <p className="mt-1 text-xs text-gray-400">Xếp hạng theo số lượng bán từ các đơn đã giao.</p>
+          </div>
+          <div className="space-y-3 p-5">
+            {bestSellers.length === 0 ? (
+              <div className="rounded-3xl bg-[#f7f8f9] p-10 text-center text-sm font-bold text-gray-400">Chưa có dữ liệu bán chạy từ đơn đã giao.</div>
+            ) : bestSellers.map((product, index) => {
+              const topQty = Math.max(bestSellers[0]?.qty || 1, 1)
+              return (
+                <div key={product.id} className="group relative overflow-hidden rounded-3xl border border-gray-100 bg-gradient-to-r from-white to-orange-50/35 p-4 transition duration-300 hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-[0_18px_42px_rgba(242,106,46,.13)]">
+                  <div className="absolute -right-8 -top-10 h-20 w-20 rounded-full bg-primary/10 blur-2xl transition group-hover:bg-primary/20" />
+                  <div className="relative flex items-center gap-4">
+                    <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-sole-dark text-sm font-black text-white shadow-lg">#{index + 1}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="truncate text-sm font-black text-sole-dark">{product.name}</p>
+                        <span className="whitespace-nowrap text-sm font-black text-primary">{product.qty} đôi</span>
+                      </div>
+                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-white">
+                        <div className="h-full rounded-full bg-gradient-to-r from-primary to-orange-300" style={{ width: `${Math.max(8, (product.qty / topQty) * 100)}%` }} />
+                      </div>
+                      <p className="mt-2 text-xs font-bold text-gray-400">Doanh thu: {formatVND(product.revenue)}</p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+
+        <section className="overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-[0_18px_55px_rgba(20,23,28,.07)]">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 p-5">
             <div>
               <h2 className="font-black text-sole-dark">Đơn mới gần đây</h2>
-              <p className="mt-1 text-xs text-gray-400">Hiển thị 6 đơn mới nhất, xem đầy đủ tại màn Đơn hàng.</p>
+              <p className="mt-1 text-xs text-gray-400">6 đơn mới nhất để nắm nhịp vận hành trong ngày.</p>
             </div>
-            <Link href="/admin/orders" className="rounded-2xl border border-gray-200 px-4 py-2 text-xs font-black text-gray-600 transition hover:border-primary hover:text-primary">Xem tất cả</Link>
           </div>
           <div className="divide-y divide-gray-100">
             {recentOrders.length === 0 ? (
@@ -204,13 +244,15 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-[0_18px_55px_rgba(20,23,28,.07)]">
+        <section className="group relative overflow-hidden rounded-[28px] border border-orange-100 bg-gradient-to-br from-white via-white to-orange-50/70 shadow-[0_18px_55px_rgba(20,23,28,.07)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_28px_75px_rgba(242,106,46,.13)]">
+          <div className="pointer-events-none absolute -right-16 -top-16 h-36 w-36 rounded-full bg-primary/10 blur-3xl transition group-hover:bg-primary/20" />
+          <div className="pointer-events-none absolute -bottom-16 left-10 h-28 w-28 rounded-full bg-red-100/60 blur-3xl" />
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 p-5">
             <div>
             <h2 className="font-black text-sole-dark">Tồn kho thấp</h2>
             <p className="mt-1 text-xs text-gray-400">Các SKU cần nhập bổ sung hoặc kiểm tra lại trạng thái bán.</p>
             </div>
-            <Link href="/admin/inventory" className="rounded-2xl border border-gray-200 px-4 py-2 text-xs font-black text-gray-600 transition hover:border-primary hover:text-primary">Xem kho</Link>
+            <span className="rounded-2xl border border-orange-200 bg-white/80 px-4 py-2 text-xs font-black text-primary shadow-sm">{lowStock.length} SKU</span>
           </div>
           {lowStock.length === 0 ? (
             <div className="p-10 text-center text-sm font-bold text-gray-400">Kho đang ổn, chưa có SKU tồn thấp.</div>
