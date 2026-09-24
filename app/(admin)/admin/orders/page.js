@@ -26,6 +26,7 @@ const TRANSITIONS = {
 const PAYMENT_METHODS = { COD: 'COD', BANK: 'QR ngân hàng', VISA: 'Visa', MOMO: 'MoMo' }
 const CARRIERS = [['GHN', 'GHN'], ['GHTK', 'GHTK'], ['VIETTEL_POST', 'Viettel Post'], ['SHOP', 'Shop tự giao'], ['OTHER', 'Khác']]
 const ORDER_PAGE_SIZE = 10
+const STATUS_KEYS = Object.keys(STATUS_CONFIG)
 
 function StatusBadge({ status }) {
   const c = STATUS_CONFIG[status] || {}
@@ -43,6 +44,41 @@ function PaymentBadge({ order }) {
     <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${paid ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-yellow-200 bg-yellow-50 text-yellow-700'}`}>
       {paid ? 'Đã thanh toán' : 'Chưa thanh toán'}
     </span>
+  )
+}
+
+function MetricCard({ title, value, subtitle, tone = 'orange', trend, mini }) {
+  const toneMap = {
+    orange: { gradient: 'from-orange-50 via-white to-white', iconText: 'text-primary', iconBg: 'bg-orange-100', borderColor: 'border-orange-100' },
+    blue: { gradient: 'from-blue-50 via-white to-white', iconText: 'text-blue-600', iconBg: 'bg-blue-100', borderColor: 'border-blue-100' },
+    emerald: { gradient: 'from-emerald-50 via-white to-white', iconText: 'text-emerald-600', iconBg: 'bg-emerald-100', borderColor: 'border-emerald-100' },
+    violet: { gradient: 'from-violet-50 via-white to-white', iconText: 'text-violet-600', iconBg: 'bg-violet-100', borderColor: 'border-violet-100' },
+    red: { gradient: 'from-rose-50 via-white to-white', iconText: 'text-rose-600', iconBg: 'bg-rose-100', borderColor: 'border-rose-100' },
+  }
+  const { gradient, iconText, iconBg, borderColor } = toneMap[tone] || toneMap.orange
+
+  return (
+    <div className={`group relative overflow-hidden rounded-[1.35rem] border ${borderColor} bg-gradient-to-br ${gradient} p-4 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-xl`}>
+      <div className="absolute -right-8 -top-10 size-24 rounded-full bg-white/60 blur-2xl transition group-hover:scale-125" />
+      <div className="relative flex items-start gap-3">
+        <div className={`grid size-12 shrink-0 place-items-center rounded-2xl ${iconBg} ${iconText} shadow-inner`}>
+          <span className="text-lg font-black">{mini}</span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 text-2xl font-black leading-tight text-sole-dark">{value}</div>
+            {trend && <span className="rounded-full bg-white/80 px-2.5 py-1 text-[11px] font-black text-emerald-600 shadow-sm">{trend}</span>}
+          </div>
+          <p className="mt-1 text-sm font-black text-sole-dark">{title}</p>
+          <p className="mt-0.5 line-clamp-2 text-xs font-semibold text-gray-400">{subtitle}</p>
+        </div>
+      </div>
+      <div className="relative mt-3 flex h-7 items-end justify-end gap-1 opacity-70">
+        {[34, 48, 62, 82].map((height, index) => (
+          <span key={height} className={`w-2 rounded-full ${iconBg}`} style={{ height: `${height}%`, animationDelay: `${index * 80}ms` }} />
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -68,8 +104,7 @@ export default function AdminOrdersPage() {
     let ignore = false
     async function run() {
       setLoading(true)
-      const url = filterStatus ? `/api/orders?status=${filterStatus}` : '/api/orders'
-      const res = await fetch(url)
+      const res = await fetch('/api/orders')
       const data = await res.json()
       if (ignore) return
       if (data.ok) {
@@ -83,7 +118,7 @@ export default function AdminOrdersPage() {
     }
     run()
     return () => { ignore = true }
-  }, [filterStatus])
+  }, [])
 
   function selectOrder(order) {
     setSelected(order)
@@ -155,12 +190,27 @@ export default function AdminOrdersPage() {
     await reloadSelected(cancelTarget.id)
   }
 
-  const stats = useMemo(() => ({
-    total: orders.length,
-    action: orders.filter(o => ['PENDING', 'CONFIRMED', 'PACKING'].includes(o.status)).length,
-    shipping: orders.filter(o => o.status === 'SHIPPING').length,
-    revenue: orders.filter(o => o.status === 'DELIVERED').reduce((sum, o) => sum + o.total, 0),
-  }), [orders])
+  const stats = useMemo(() => {
+    const statusCounts = STATUS_KEYS.reduce((acc, status) => ({ ...acc, [status]: 0 }), {})
+    orders.forEach(order => {
+      statusCounts[order.status] = (statusCounts[order.status] || 0) + 1
+    })
+    const total = orders.length
+    const cancelled = statusCounts.CANCELLED || 0
+    return {
+      total,
+      statusCounts,
+      action: (statusCounts.PENDING || 0) + (statusCounts.CONFIRMED || 0) + (statusCounts.PACKING || 0),
+      operating: (statusCounts.PACKING || 0) + (statusCounts.SHIPPING || 0),
+      revenue: orders.filter(o => o.status === 'DELIVERED').reduce((sum, o) => sum + o.total, 0),
+      cancelRate: total ? Math.round((cancelled / total) * 100) : 0,
+      cancelled,
+    }
+  }, [orders])
+
+  const visibleOrders = useMemo(() => (
+    filterStatus ? orders.filter(order => order.status === filterStatus) : orders
+  ), [orders, filterStatus])
 
   const nextStatuses = selected ? TRANSITIONS[selected.status] || [] : []
   const sortedEvents = [...(selected?.order_events || [])].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -188,32 +238,29 @@ export default function AdminOrdersPage() {
         <p className="mt-1 text-sm text-gray-400">Xử lý đơn theo luồng: xác nhận, đóng gói, giao hàng, hoàn tất.</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {[
-          ['Tổng đơn', stats.total],
-          ['Cần xử lý', stats.action],
-          ['Đang giao', stats.shipping],
-          ['Doanh thu đã giao', formatVND(stats.revenue)],
-        ].map(([label, value]) => (
-          <div key={label} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-            <div className="text-xl font-black text-sole-dark">{value}</div>
-            <div className="mt-1 text-xs font-bold text-gray-400">{label}</div>
-          </div>
-        ))}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <MetricCard title="Tổng đơn" value={stats.total} subtitle="Toàn bộ đơn trong hệ thống" tone="orange" trend="+ tổng quan" mini="T" />
+        <MetricCard title="Cần xử lý" value={stats.action} subtitle="Chờ xác nhận, đã xác nhận, đóng gói" tone="blue" trend={`${stats.statusCounts.PENDING || 0} mới`} mini="X" />
+        <MetricCard title="Đang vận hành" value={stats.operating} subtitle="Đang đóng gói và đang giao" tone="emerald" trend={`${stats.statusCounts.SHIPPING || 0} giao`} mini="V" />
+        <MetricCard title="Doanh thu đã giao" value={formatVND(stats.revenue)} subtitle="Chỉ tính đơn đã giao hoàn tất" tone="violet" trend="thực thu" mini="Đ" />
+        <MetricCard title="Tỉ lệ hủy" value={`${stats.cancelRate}%`} subtitle={`${stats.cancelled} đơn đã hủy trên ${stats.total || 0} đơn`} tone="red" trend="rủi ro" mini="H" />
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {[['', 'Tất cả'], ...Object.entries(STATUS_CONFIG).map(([key, value]) => [key, value.label])].map(([value, label]) => (
-          <button key={value} onClick={() => { setFilterStatus(value); setPage(1) }} className={`rounded-xl px-4 py-2 text-sm font-bold transition ${filterStatus === value ? 'bg-primary text-white shadow-md' : 'border border-gray-200 bg-white text-gray-600 hover:border-primary'}`}>{label}</button>
+      <div className="flex flex-wrap gap-2 rounded-[1.35rem] border border-gray-100 bg-white/90 p-2 shadow-sm backdrop-blur">
+        {[['', 'Tất cả', stats.total], ...Object.entries(STATUS_CONFIG).map(([key, value]) => [key, value.label, stats.statusCounts[key] || 0])].map(([value, label, count]) => (
+          <button key={value} onClick={() => { setFilterStatus(value); setPage(1) }} className={`group inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-black transition duration-300 ${filterStatus === value ? 'bg-gradient-to-r from-primary to-orange-500 text-white shadow-lg shadow-orange-200' : 'border border-gray-100 bg-gray-50 text-gray-600 hover:-translate-y-0.5 hover:border-orange-100 hover:bg-orange-50 hover:text-primary'}`}>
+            <span>{label}</span>
+            <span className={`min-w-7 rounded-full px-2 py-0.5 text-center text-xs ${filterStatus === value ? 'bg-white/25 text-white' : 'bg-white text-gray-500 shadow-sm group-hover:text-primary'}`}>{count}</span>
+          </button>
         ))}
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_520px]">
         <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
           {(() => {
-            const orderTotalPages = Math.max(1, Math.ceil(orders.length / ORDER_PAGE_SIZE))
+            const orderTotalPages = Math.max(1, Math.ceil(visibleOrders.length / ORDER_PAGE_SIZE))
             const currentPage = Math.min(page, orderTotalPages)
-            const pagedOrders = orders.slice((currentPage - 1) * ORDER_PAGE_SIZE, currentPage * ORDER_PAGE_SIZE)
+            const pagedOrders = visibleOrders.slice((currentPage - 1) * ORDER_PAGE_SIZE, currentPage * ORDER_PAGE_SIZE)
             return (
               <>
           <div className="divide-y divide-gray-100 md:hidden">
@@ -235,7 +282,7 @@ export default function AdminOrdersPage() {
                 </div>
               </button>
             ))}
-            {!loading && orders.length === 0 && <div className="py-12 text-center text-gray-400">Không có đơn hàng</div>}
+            {!loading && visibleOrders.length === 0 && <div className="py-12 text-center text-gray-400">Không có đơn hàng</div>}
           </div>
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
@@ -258,11 +305,11 @@ export default function AdminOrdersPage() {
                     <td className="px-4 py-3 text-right font-black text-primary">{formatVND(order.total)}</td>
                   </tr>
                 ))}
-                {!loading && orders.length === 0 && <tr><td colSpan={5} className="py-12 text-center text-gray-400">Không có đơn hàng</td></tr>}
+                {!loading && visibleOrders.length === 0 && <tr><td colSpan={5} className="py-12 text-center text-gray-400">Không có đơn hàng</td></tr>}
               </tbody>
             </table>
           </div>
-          <AdminPagination page={currentPage} totalPages={orderTotalPages} totalItems={orders.length} pageSize={ORDER_PAGE_SIZE} label="đơn hàng" onPageChange={setPage} />
+          <AdminPagination page={currentPage} totalPages={orderTotalPages} totalItems={visibleOrders.length} pageSize={ORDER_PAGE_SIZE} label="đơn hàng" onPageChange={setPage} />
               </>
             )
           })()}
