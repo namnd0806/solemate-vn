@@ -122,18 +122,6 @@ CREATE TABLE IF NOT EXISTS order_events (
 );
 CREATE INDEX IF NOT EXISTS idx_order_events_order_id ON order_events(order_id);
 
-ALTER TABLE order_events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
-ALTER TABLE variants ENABLE ROW LEVEL SECURITY;
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE promotions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE stock_movements ENABLE ROW LEVEL SECURITY;
-ALTER TABLE wishlists ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON TABLE order_events FROM anon, authenticated;
-
 -- =============================================================
 -- ORDER ITEMS
 -- =============================================================
@@ -152,6 +140,16 @@ CREATE TABLE IF NOT EXISTS order_items (
   line_total  INTEGER NOT NULL CHECK (line_total > 0)
 );
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
+
+CREATE OR REPLACE VIEW product_sales_stats WITH (security_invoker = true) AS
+SELECT p.id AS product_id,
+       COALESCE(SUM(oi.qty) FILTER (WHERE o.status IN ('CONFIRMED','PACKING','SHIPPING','DELIVERED')), 0)::BIGINT AS sales_count
+FROM products p
+LEFT JOIN order_items oi ON oi.product_id = p.id
+LEFT JOIN orders o ON o.id = oi.order_id
+GROUP BY p.id;
+REVOKE ALL ON product_sales_stats FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON product_sales_stats TO service_role;
 
 -- =============================================================
 -- PROMOTIONS
@@ -207,3 +205,18 @@ CREATE TABLE IF NOT EXISTS wishlists (
 );
 CREATE INDEX IF NOT EXISTS idx_wishlists_user_id ON wishlists(user_id);
 CREATE INDEX IF NOT EXISTS idx_wishlists_product_id ON wishlists(product_id);
+
+-- =============================================================
+-- ROW LEVEL SECURITY
+-- =============================================================
+ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE variants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE order_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE promotions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE stock_movements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE wishlists ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE order_events FROM anon, authenticated;

@@ -5,6 +5,8 @@ import { getAdminFromRequest } from '@/lib/auth'
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url)
+    const requestedStatus = searchParams.get('status') || 'ACTIVE'
+    const admin = requestedStatus === 'ALL' ? await getAdminFromRequest(request) : null
     const params = {
       search: searchParams.get('search') || undefined,
       gender: searchParams.get('gender') || undefined,
@@ -16,7 +18,7 @@ export async function GET(request) {
       featured: searchParams.get('featured') || undefined,
       bestSeller: searchParams.get('bestSeller') || undefined,
       hasSalePrice: searchParams.get('hasSalePrice') || undefined,
-      status: searchParams.get('status') || 'ACTIVE',
+      status: requestedStatus === 'ALL' && !admin ? 'ACTIVE' : requestedStatus,
     }
     const result = await getProducts(params)
     if (!result.ok) return NextResponse.json(result, { status: 500 })

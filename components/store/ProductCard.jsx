@@ -28,7 +28,7 @@ export default function ProductCard({ product, isWishlisted = false, onWishlistT
               alt={product.name}
               fill
               sizes="(max-width: 420px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className="object-cover object-center transition duration-700 ease-out group-hover:scale-[1.055]"
+              className="object-contain object-center p-3 transition duration-700 ease-out group-hover:scale-[1.055]"
             />
           ) : (
             <ShoeSvg className="absolute inset-x-[7%] top-[8%] h-[82%] w-[86%] transition duration-700 ease-out group-hover:scale-[1.08] group-hover:-rotate-1" color={product.accent || '#e8642a'} brand={product.brand} />
@@ -37,7 +37,7 @@ export default function ProductCard({ product, isWishlisted = false, onWishlistT
           <div className="absolute left-3 top-3 flex flex-wrap gap-1.5 pr-12">
             {product.featured && <span className="rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold text-white shadow-[0_4px_10px_rgba(242,106,46,.28)]">Nổi bật</span>}
             {hasSale && <span className="rounded-full bg-[#ff3347] px-2.5 py-1 text-[10px] font-bold text-white">SALE</span>}
-            {product.best_seller && !product.featured && <span className="rounded-full bg-[#ff9f1c] px-2.5 py-1 text-[10px] font-bold text-white">Bán chạy</span>}
+            {product.is_best_seller && !product.featured && <span className="rounded-full bg-[#ff9f1c] px-2.5 py-1 text-[10px] font-bold text-white">Bán chạy</span>}
           </div>
         </div>
 

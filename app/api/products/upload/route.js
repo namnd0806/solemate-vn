@@ -22,6 +22,13 @@ export async function POST(request) {
     const file = formData.get('file')
 
     if (!file) return NextResponse.json({ ok: false, message: 'Không có file.' }, { status: 400 })
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      return NextResponse.json({ ok: false, message: 'Chỉ hỗ trợ JPG, PNG hoặc WebP.' }, { status: 400 })
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      return NextResponse.json({ ok: false, message: 'Ảnh tối đa 5MB.' }, { status: 400 })
+    }
 
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
