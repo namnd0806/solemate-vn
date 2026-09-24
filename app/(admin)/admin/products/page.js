@@ -8,7 +8,7 @@ import { ProductConfirm, ProductToast } from '@/components/admin/ProductFeedback
 
 const EMPTY_PRODUCT = {
   name: '', slug: '', brand: '', gender: 'NAM', category: 'LIFESTYLE',
-  price: '', sale_price: '', sale_start_at: '', sale_end_at: '', accent: '#e8642a', description: '',
+  price: '', sale_price: '', sale_start_at: '', sale_end_at: '', description: '',
   status: 'ACTIVE', featured: false, image_url: '',
 }
 const EMPTY_VARIANT = { sku: '', color: '', size: '', stock: '0', status: 'ACTIVE' }
@@ -90,7 +90,7 @@ export default function AdminProductsPage() {
       name: p.name, slug: p.slug, brand: p.brand, gender: p.gender,
       category: p.category, price: p.price, sale_price: p.sale_price || '',
       sale_start_at: toLocalInput(p.sale_start_at), sale_end_at: toLocalInput(p.sale_end_at),
-      accent: p.accent, description: p.description || '', status: p.status,
+      description: p.description || '', status: p.status,
       featured: p.featured, image_url: p.image_url || '',
     })
     setVariants(p.variants?.map(v => ({
@@ -324,7 +324,6 @@ export default function AdminProductsPage() {
                       <label><span className="mb-1.5 block text-xs font-black text-gray-500">Giá sale (VNĐ)</span><input type="number" min="1" value={form.sale_price} onChange={e => setForm(p => ({ ...p, sale_price: e.target.value }))} className="form-field" /></label>
                       <label><span className="mb-1.5 block text-xs font-black text-gray-500">Bắt đầu sale</span><input type="datetime-local" value={form.sale_start_at} onChange={e => setForm(p => ({ ...p, sale_start_at: e.target.value }))} disabled={!form.sale_price} className="form-field disabled:bg-gray-50 disabled:text-gray-400" /></label>
                       <label><span className="mb-1.5 block text-xs font-black text-gray-500">Kết thúc sale</span><input type="datetime-local" value={form.sale_end_at} onChange={e => setForm(p => ({ ...p, sale_end_at: e.target.value }))} disabled={!form.sale_price} className="form-field disabled:bg-gray-50 disabled:text-gray-400" /></label>
-                      <label><span className="mb-1.5 block text-xs font-black text-gray-500">Màu accent</span><div className="flex gap-2"><input type="color" value={form.accent} onChange={e => setForm(p => ({ ...p, accent: e.target.value }))} className="h-12 w-14 rounded-2xl border border-gray-200 bg-white p-1" /><input value={form.accent} onChange={e => setForm(p => ({ ...p, accent: e.target.value }))} className="form-field" /></div></label>
                       <label><span className="mb-1.5 block text-xs font-black text-gray-500">Trạng thái</span><select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="form-field"><option value="ACTIVE">Đang bán</option><option value="INACTIVE">Ẩn</option></select></label>
                       <label className="sm:col-span-2"><span className="mb-1.5 block text-xs font-black text-gray-500">Mô tả</span><textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3} className="form-field resize-none" /></label>
                     </div>

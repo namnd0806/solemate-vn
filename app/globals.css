@@ -93,6 +93,48 @@ button, a { -webkit-tap-highlight-color: transparent; }
 
 .form-field:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(242, 106, 46, .11); }
 
+.admin-dark body { background: #0c0e10; color: #f5f6f7; }
+.admin-dark .admin-shell,
+.admin-dark .admin-main { background: #0c0e10; color: #f5f6f7; }
+.admin-dark .admin-topbar {
+  border-color: rgba(255, 255, 255, .08);
+  background: rgba(15, 17, 20, .9);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .28);
+}
+.admin-dark .admin-topbar h1,
+.admin-dark .text-sole-dark { color: #f7f8f9; }
+.admin-dark .bg-white,
+.admin-dark .surface-card { background-color: #15181c; }
+.admin-dark .bg-\[\#f7f8f9\],
+.admin-dark .bg-sole-gray,
+.admin-dark .bg-gray-50,
+.admin-dark .bg-gray-100 { background-color: #1d2126; }
+.admin-dark .border-gray-100,
+.admin-dark .border-gray-200,
+.admin-dark .border-gray-300 { border-color: rgba(255, 255, 255, .09); }
+.admin-dark .text-gray-400 { color: #8b949e; }
+.admin-dark .text-gray-500,
+.admin-dark .text-gray-600,
+.admin-dark .text-gray-700 { color: #b5bdc7; }
+.admin-dark .form-field,
+.admin-dark input,
+.admin-dark select,
+.admin-dark textarea {
+  border-color: rgba(255, 255, 255, .1);
+  background-color: #111418;
+  color: #f7f8f9;
+}
+.admin-dark .form-field::placeholder,
+.admin-dark input::placeholder,
+.admin-dark textarea::placeholder { color: #69717c; }
+.admin-dark table thead,
+.admin-dark thead.bg-\[\#f7f8f9\] { background-color: #1b1f24; }
+.admin-dark tr:hover { background-color: rgba(242, 106, 46, .08); }
+.admin-dark .shadow-sm,
+.admin-dark .shadow-md,
+.admin-dark .shadow-lg,
+.admin-dark .shadow-2xl { box-shadow: 0 18px 45px rgba(0, 0, 0, .24); }
+
 .section-kicker {
   display: inline-flex;
   align-items: center;
