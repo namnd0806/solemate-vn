@@ -9,7 +9,7 @@ async function getDashboardData() {
   const [ordersRes, settingsRes] = await Promise.all([
     supabase
       .from('orders')
-      .select('id, status, total, created_at, contact, payment_method, payment_status, order_items(product_id, name, qty, line_total)')
+      .select('id, status, total, created_at, delivered_at, contact, payment_method, payment_status, order_items(product_id, name, qty, line_total)')
       .order('created_at', { ascending: false }),
     supabase.from('settings').select('*').single(),
   ])
@@ -21,8 +21,10 @@ async function getDashboardData() {
   const pending = orders.filter(o => ['PENDING', 'CONFIRMED', 'PACKING'].includes(o.status)).length
   const todayStr = new Date().toISOString().slice(0, 10)
   const todayOrders = orders.filter(o => o.created_at?.slice(0, 10) === todayStr).length
+  const getDeliveredDate = order => (order.delivered_at || order.created_at || '').slice(0, 10)
+  const todayDeliveredOrders = orders.filter(o => o.status === 'DELIVERED' && getDeliveredDate(o) === todayStr).length
   const todayRevenue = orders
-    .filter(o => o.status === 'DELIVERED' && o.created_at?.slice(0, 10) === todayStr)
+    .filter(o => o.status === 'DELIVERED' && getDeliveredDate(o) === todayStr)
     .reduce((s, o) => s + o.total, 0)
 
   const statusBreakdown = { PENDING: 0, CONFIRMED: 0, PACKING: 0, SHIPPING: 0, DELIVERED: 0, CANCELLED: 0 }
@@ -34,7 +36,7 @@ async function getDashboardData() {
     const d = new Date(); d.setDate(d.getDate() - i)
     const dateStr = d.toISOString().slice(0, 10)
     const dayRevenue = orders
-      .filter(o => o.status === 'DELIVERED' && o.created_at?.slice(0, 10) === dateStr)
+      .filter(o => o.status === 'DELIVERED' && getDeliveredDate(o) === dateStr)
       .reduce((s, o) => s + o.total, 0)
     days.push({ date: dateStr.slice(5), revenue: dayRevenue })
   }
@@ -62,7 +64,7 @@ async function getDashboardData() {
     .sort((a, b) => b.qty - a.qty || b.revenue - a.revenue)
     .slice(0, 5)
 
-  return { revenue, pending, statusBreakdown, days, lowStock: lowStock || [], recentOrders: orders.slice(0, 6), todayOrders, todayRevenue, bestSellers }
+  return { revenue, pending, statusBreakdown, days, lowStock: lowStock || [], recentOrders: orders.slice(0, 6), todayOrders, todayRevenue, todayDeliveredOrders, bestSellers }
 }
 
 const STATUS_VN = { PENDING: 'Chờ xác nhận', CONFIRMED: 'Đã xác nhận', PACKING: 'Đang đóng gói', SHIPPING: 'Đang giao', DELIVERED: 'Đã giao', CANCELLED: 'Đã hủy' }
@@ -118,7 +120,7 @@ function DashboardMetric({ label, value, hint, tone, path, trend }) {
 }
 
 export default async function DashboardPage() {
-  const { revenue, pending, statusBreakdown, days, lowStock, recentOrders, todayOrders, todayRevenue, bestSellers } = await getDashboardData()
+  const { revenue, pending, statusBreakdown, days, lowStock, recentOrders, todayOrders, todayRevenue, todayDeliveredOrders, bestSellers } = await getDashboardData()
   const maxRevenue = Math.max(...days.map(d => d.revenue), 1)
   const totalOrders = Object.values(statusBreakdown).reduce((a, b) => a + b, 0)
   const visibleLowStock = lowStock.slice(0, 8)
@@ -143,7 +145,7 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-4">
         {[
-          { label: 'Tổng doanh thu đã giao', value: formatVND(revenue), hint: `Đơn giao hôm nay: ${formatVND(todayRevenue)}`, tone: 'green', trend: 'DELIVERED', path: 'M5 12h14M12 5v14' },
+          { label: 'Tổng doanh thu đã giao', value: formatVND(revenue), hint: `Hôm nay ${todayDeliveredOrders} đơn / ${formatVND(todayRevenue)}`, tone: 'green', trend: 'DELIVERED', path: 'M5 12h14M12 5v14' },
           { label: 'Đơn cần xử lý', value: pending, hint: 'Chờ xác nhận, đóng gói', tone: 'orange', trend: pending ? `+${pending}` : '0', path: 'M12 6v6l4 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z' },
           { label: 'SKU tồn thấp', value: lowStock.length, hint: 'Cần kiểm tra nhập hàng', tone: 'red', trend: lowStock.length ? `+${lowStock.length}` : '0%', path: 'M12 9v4m0 4h.01M10.3 4.3 2.8 17.5A2 2 0 0 0 4.5 20h15a2 2 0 0 0 1.7-2.5L13.7 4.3a2 2 0 0 0-3.4 0Z' },
           { label: 'Tổng đơn hàng', value: totalOrders, hint: `Hôm nay ${todayOrders} đơn`, tone: 'blue', trend: '+18%', path: 'M4 7 12 3l8 4-8 4-8-4Zm0 0v10l8 4 8-4V7M12 11v10' },
