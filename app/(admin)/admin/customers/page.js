@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { formatVND } from '@/lib/utils'
 import AdminPagination from '@/components/admin/AdminPagination'
-import { ProductToast } from '@/components/admin/ProductFeedback'
+import { AdminConfirm, AdminMetricCard, ProductToast } from '@/components/admin/ProductFeedback'
 
 const CUSTOMER_PAGE_SIZE = 10
 const TYPE_LABEL = { REGISTERED: 'Có tài khoản', GUEST: 'Khách vãng lai' }
@@ -16,29 +16,6 @@ function CustomerTypeBadge({ type }) {
       <span className={`size-1.5 rounded-full ${isGuest ? 'bg-sky-500' : 'bg-emerald-500'}`} />
       {TYPE_LABEL[type] || type}
     </span>
-  )
-}
-
-function MetricCard({ title, value, hint, tone = 'orange', icon }) {
-  const toneMap = {
-    orange: { gradient: 'from-orange-50 via-white to-white', icon: 'bg-orange-100 text-primary', border: 'border-orange-100' },
-    emerald: { gradient: 'from-emerald-50 via-white to-white', icon: 'bg-emerald-100 text-emerald-600', border: 'border-emerald-100' },
-    blue: { gradient: 'from-blue-50 via-white to-white', icon: 'bg-blue-100 text-blue-600', border: 'border-blue-100' },
-    violet: { gradient: 'from-violet-50 via-white to-white', icon: 'bg-violet-100 text-violet-600', border: 'border-violet-100' },
-  }
-  const style = toneMap[tone] || toneMap.orange
-  return (
-    <div className={`group relative overflow-hidden rounded-[1.35rem] border ${style.border} bg-gradient-to-br ${style.gradient} p-5 shadow-[0_18px_50px_rgba(15,23,42,.06)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_70px_rgba(15,23,42,.11)]`}>
-      <div className="absolute -right-8 -top-10 size-24 rounded-full bg-white/60 blur-2xl transition group-hover:scale-125" />
-      <div className="relative flex items-start gap-4">
-        <span className={`grid size-12 place-items-center rounded-2xl ${style.icon} text-lg font-black shadow-inner`}>{icon}</span>
-        <div>
-          <p className="text-3xl font-black leading-none tracking-tight text-sole-dark">{value}</p>
-          <p className="mt-2 text-sm font-black text-sole-dark">{title}</p>
-          <p className="mt-1 text-xs font-semibold text-gray-400">{hint}</p>
-        </div>
-      </div>
-    </div>
   )
 }
 
@@ -59,6 +36,8 @@ export default function AdminCustomersPage() {
   const [selected, setSelected] = useState(null)
   const [toast, setToast] = useState(null)
   const [page, setPage] = useState(1)
+  const [confirmCustomer, setConfirmCustomer] = useState(null)
+  const [updating, setUpdating] = useState(false)
 
   function showToast(message, type = 'success') {
     setToast({ message, type, id: Date.now() })
@@ -120,6 +99,7 @@ export default function AdminCustomersPage() {
       return
     }
     try {
+      setUpdating(true)
       const response = await fetch(`/api/customers/${customer.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -128,15 +108,28 @@ export default function AdminCustomersPage() {
       const result = await response.json()
       if (!result.ok) return showToast(result.message || 'Không thể cập nhật khách hàng.', 'error')
       showToast(customer.active ? 'Đã khóa tài khoản khách hàng.' : 'Đã mở lại tài khoản.')
+      setConfirmCustomer(null)
       await load()
     } catch {
       showToast('Không thể kết nối máy chủ khách hàng.', 'error')
+    } finally {
+      setUpdating(false)
     }
   }
 
   return (
     <div className="space-y-6">
       <ProductToast key={toast?.id} toast={toast} onClose={() => setToast(null)} />
+      <AdminConfirm
+        open={confirmCustomer}
+        title={confirmCustomer?.active ? 'Khóa tài khoản khách hàng?' : 'Mở lại tài khoản khách hàng?'}
+        message={confirmCustomer?.active ? 'Khách hàng sẽ không thể đăng nhập tài khoản này cho đến khi admin mở lại.' : 'Khách hàng sẽ có thể đăng nhập và xem đơn hàng trong tài khoản.'}
+        tone={confirmCustomer?.active ? 'red' : 'emerald'}
+        confirmText={confirmCustomer?.active ? 'Xác nhận khóa' : 'Mở lại'}
+        busy={updating}
+        onCancel={() => setConfirmCustomer(null)}
+        onConfirm={() => toggle(confirmCustomer)}
+      />
 
       <div>
         <p className="text-xs font-black uppercase tracking-[.38em] text-primary">Admin Workspace</p>
@@ -148,10 +141,10 @@ export default function AdminCustomersPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard title="Tổng khách" value={customers.length} hint="Tài khoản + khách vãng lai" icon="K" />
-        <MetricCard title="Có tài khoản" value={stats.registered} hint="Đăng nhập và xem đơn riêng" tone="emerald" icon="A" />
-        <MetricCard title="Khách vãng lai" value={stats.guests} hint="Mua nhanh không cần đăng nhập" tone="blue" icon="G" />
-        <MetricCard title="Doanh thu đã giao" value={formatVND(stats.totalSpent)} hint={`${stats.totalOrders} đơn đã ghi nhận`} tone="violet" icon="Đ" />
+        <AdminMetricCard title="Tổng khách" value={customers.length} subtitle="Tài khoản + khách vãng lai" tone="orange" trend="+ tổng"><span className="text-lg font-black">K</span></AdminMetricCard>
+        <AdminMetricCard title="Có tài khoản" value={stats.registered} subtitle="Đăng nhập và xem đơn riêng" tone="emerald" trend="user"><span className="text-lg font-black">A</span></AdminMetricCard>
+        <AdminMetricCard title="Khách vãng lai" value={stats.guests} subtitle="Mua nhanh không cần đăng nhập" tone="blue" trend="guest"><span className="text-lg font-black">G</span></AdminMetricCard>
+        <AdminMetricCard title="Doanh thu đã giao" value={formatVND(stats.totalSpent)} subtitle={`${stats.totalOrders} đơn đã ghi nhận`} tone="violet" trend="DELIVERED"><span className="text-lg font-black">Đ</span></AdminMetricCard>
       </div>
 
       <div className="overflow-hidden rounded-[1.35rem] border border-gray-100 bg-white shadow-[0_18px_54px_rgba(15,23,42,.06)]">
@@ -228,7 +221,7 @@ export default function AdminCustomersPage() {
               {[...(selected.orders || [])].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).map(order => <div key={order.id} className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white p-3 shadow-sm"><div><p className="font-mono text-xs font-black text-sole-dark">#{order.id}</p><p className="mt-1 text-[11px] font-semibold text-gray-400">{new Date(order.created_at).toLocaleString('vi-VN')}</p></div><div className="text-right"><p className="text-sm font-black text-primary">{formatVND(order.total)}</p><p className="mt-1 text-[11px] font-bold text-gray-400">{STATUS_LABELS[order.status] || order.status}</p></div></div>)}
               {selected.orders?.length === 0 && <div className="rounded-2xl bg-white p-5 text-center text-sm font-bold text-gray-400">Chưa có đơn hàng.</div>}
             </div>
-            {selected.type === 'REGISTERED' ? <button onClick={() => toggle(selected)} className={`mt-6 w-full rounded-2xl py-3 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5 ${selected.active ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-500 hover:bg-emerald-600'}`}>{selected.active ? 'Khóa tài khoản' : 'Mở lại tài khoản'}</button> : <div className="mt-6 rounded-2xl border border-sky-100 bg-sky-50 p-4 text-sm font-semibold leading-6 text-sky-700">Khách này mua nhanh không đăng nhập, nên không có tài khoản để khóa/mở. Shop vẫn xem được lịch sử đơn dựa trên số điện thoại.</div>}
+            {selected.type === 'REGISTERED' ? <button onClick={() => setConfirmCustomer(selected)} className={`mt-6 w-full rounded-2xl py-3 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5 ${selected.active ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-500 hover:bg-emerald-600'}`}>{selected.active ? 'Khóa tài khoản' : 'Mở lại tài khoản'}</button> : <div className="mt-6 rounded-2xl border border-sky-100 bg-sky-50 p-4 text-sm font-semibold leading-6 text-sky-700">Khách này mua nhanh không đăng nhập, nên không có tài khoản để khóa/mở. Shop vẫn xem được lịch sử đơn dựa trên số điện thoại.</div>}
           </aside>
         </div>
       )}

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { formatVND } from '@/lib/utils'
 import AdminPagination from '@/components/admin/AdminPagination'
-import { ProductToast } from '@/components/admin/ProductFeedback'
+import { AdminConfirm, AdminMetricCard, ProductToast } from '@/components/admin/ProductFeedback'
 
 const STATUS_CONFIG = {
   PENDING: { label: 'Chờ xác nhận', hint: 'Đơn mới, cần kiểm tra thông tin', color: 'bg-yellow-50 text-yellow-700 border-yellow-200', dot: 'bg-yellow-400' },
@@ -54,41 +54,6 @@ function PaymentBadge({ order }) {
   )
 }
 
-function MetricCard({ title, value, subtitle, tone = 'orange', trend, mini }) {
-  const toneMap = {
-    orange: { gradient: 'from-orange-50 via-white to-white', iconText: 'text-primary', iconBg: 'bg-orange-100', bar: 'bg-orange-300', borderColor: 'border-orange-100' },
-    blue: { gradient: 'from-blue-50 via-white to-white', iconText: 'text-blue-600', iconBg: 'bg-blue-100', bar: 'bg-blue-300', borderColor: 'border-blue-100' },
-    emerald: { gradient: 'from-emerald-50 via-white to-white', iconText: 'text-emerald-600', iconBg: 'bg-emerald-100', bar: 'bg-emerald-300', borderColor: 'border-emerald-100' },
-    violet: { gradient: 'from-violet-50 via-white to-white', iconText: 'text-violet-600', iconBg: 'bg-violet-100', bar: 'bg-violet-300', borderColor: 'border-violet-100' },
-    red: { gradient: 'from-rose-50 via-white to-white', iconText: 'text-rose-600', iconBg: 'bg-rose-100', bar: 'bg-rose-300', borderColor: 'border-rose-100' },
-  }
-  const { gradient, iconText, iconBg, bar, borderColor } = toneMap[tone] || toneMap.orange
-
-  return (
-    <div className={`group relative overflow-hidden rounded-[1.35rem] border ${borderColor} bg-gradient-to-br ${gradient} p-4 shadow-[0_18px_50px_rgba(15,23,42,.06)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_70px_rgba(15,23,42,.11)]`}>
-      <div className="absolute -right-8 -top-10 size-24 rounded-full bg-white/60 blur-2xl transition group-hover:scale-125" />
-      <div className="relative flex items-start gap-3">
-        <div className={`grid size-12 shrink-0 place-items-center rounded-2xl ${iconBg} ${iconText} shadow-inner transition group-hover:scale-105`}>
-          <span className="text-lg font-black">{mini}</span>
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0 text-2xl font-black leading-tight text-sole-dark">{value}</div>
-            {trend && <span className="rounded-full bg-white/80 px-2.5 py-1 text-[11px] font-black text-emerald-600 shadow-sm">{trend}</span>}
-          </div>
-          <p className="mt-1 text-sm font-black text-sole-dark">{title}</p>
-          <p className="mt-0.5 line-clamp-2 text-xs font-semibold text-gray-400">{subtitle}</p>
-        </div>
-      </div>
-      <div className="relative mt-3 flex h-7 items-end justify-end gap-1 opacity-70">
-        {[34, 48, 62, 82].map((height, index) => (
-          <span key={height} className={`w-2 rounded-full ${bar} transition-all duration-300 group-hover:opacity-90`} style={{ height: `${height}%`, animationDelay: `${index * 80}ms` }} />
-        ))}
-      </div>
-    </div>
-  )
-}
-
 function InfoBlock({ tone = 'orange', icon, title, children, action }) {
   const toneMap = {
     orange: 'bg-orange-50 text-primary',
@@ -124,6 +89,7 @@ export default function AdminOrdersPage() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [timeFilter, setTimeFilter] = useState('ALL')
+  const [confirmAction, setConfirmAction] = useState(null)
 
   function showToast(msg, type = 'success') {
     setToast({ message: msg, type, id: Date.now() })
@@ -205,16 +171,45 @@ export default function AdminOrdersPage() {
     await reloadSelected(selected.id)
   }
 
+  function requestConfirm(config) {
+    setConfirmAction(config)
+  }
+
+  async function runConfirmedAction() {
+    const action = confirmAction?.action
+    if (!action) return
+    await action()
+    setConfirmAction(null)
+  }
+
   async function changeStatus(status) {
-    if (status === 'SHIPPING') {
-      await patchOrder({ status, shippingCarrier: shipping.carrier, tracking: shipping.tracking, note: `Chuyển sang ${STATUS_CONFIG[status].label}` }, 'Đã chuyển sang đang giao.')
-      return
-    }
-    await patchOrder({ status, note: `Chuyển sang ${STATUS_CONFIG[status].label}` }, `Đã chuyển sang ${STATUS_CONFIG[status].label}.`)
+    requestConfirm({
+      title: `Chuyển đơn sang ${STATUS_CONFIG[status]?.label}?`,
+      message: status === 'DELIVERED'
+        ? 'Đơn sẽ được ghi nhận hoàn tất, chốt thanh toán nếu còn chưa thanh toán và được tính vào doanh thu đã giao.'
+        : 'Trạng thái đơn sẽ được cập nhật và lưu vào lịch sử xử lý để nhân viên khác theo dõi.',
+      tone: status === 'DELIVERED' ? 'emerald' : 'orange',
+      confirmText: 'Xác nhận chuyển',
+      action: async () => {
+        if (status === 'SHIPPING') {
+          await patchOrder({ status, shippingCarrier: shipping.carrier, tracking: shipping.tracking, note: `Chuyển sang ${STATUS_CONFIG[status].label}` }, 'Đã chuyển sang đang giao.')
+          return
+        }
+        await patchOrder({ status, note: `Chuyển sang ${STATUS_CONFIG[status].label}` }, `Đã chuyển sang ${STATUS_CONFIG[status].label}.`)
+      },
+    })
   }
 
   async function saveShipping() {
-    await patchOrder({ shippingCarrier: shipping.carrier, tracking: shipping.tracking, internalNote, note: 'Cập nhật vận chuyển/ghi chú' }, 'Đã lưu thông tin đơn hàng.')
+    requestConfirm({
+      title: 'Lưu vận chuyển và ghi chú?',
+      message: 'Thông tin vận chuyển, mã vận đơn và ghi chú nội bộ sẽ được cập nhật cho đơn hiện tại.',
+      tone: 'dark',
+      confirmText: 'Lưu thay đổi',
+      action: async () => {
+        await patchOrder({ shippingCarrier: shipping.carrier, tracking: shipping.tracking, internalNote, note: 'Cập nhật vận chuyển/ghi chú' }, 'Đã lưu thông tin đơn hàng.')
+      },
+    })
   }
 
   async function cancelOrder() {
@@ -288,6 +283,16 @@ export default function AdminOrdersPage() {
   return (
     <div className="space-y-6">
       <ProductToast key={toast?.id} toast={toast} onClose={() => setToast(null)} />
+      <AdminConfirm
+        open={confirmAction}
+        title={confirmAction?.title}
+        message={confirmAction?.message}
+        tone={confirmAction?.tone}
+        confirmText={confirmAction?.confirmText}
+        busy={updating}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={runConfirmedAction}
+      />
 
       {cancelTarget && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4 backdrop-blur-sm">
@@ -315,11 +320,11 @@ export default function AdminOrdersPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <MetricCard title="Tổng đơn" value={stats.total} subtitle="Toàn bộ đơn trong hệ thống" tone="orange" trend="+ tổng quan" mini="T" />
-        <MetricCard title="Cần xử lý" value={stats.action} subtitle="Chờ xác nhận, đã xác nhận, đóng gói" tone="blue" trend={`${stats.statusCounts.PENDING || 0} mới`} mini="X" />
-        <MetricCard title="Đang vận hành" value={stats.operating} subtitle="Đang đóng gói và đang giao" tone="emerald" trend={`${stats.statusCounts.SHIPPING || 0} giao`} mini="V" />
-        <MetricCard title="Doanh thu đã giao" value={formatVND(stats.revenue)} subtitle="Chỉ tính đơn đã giao hoàn tất" tone="violet" trend="thực thu" mini="Đ" />
-        <MetricCard title="Tỉ lệ hủy" value={`${stats.cancelRate}%`} subtitle={`${stats.cancelled} đơn đã hủy trên ${stats.total || 0} đơn`} tone="red" trend="rủi ro" mini="H" />
+        <AdminMetricCard title="Tổng đơn" value={stats.total} subtitle="Toàn bộ đơn trong hệ thống" tone="orange" trend="+12%"><svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M6 7h12l-1 13H7L6 7Z" /><path d="M9 7V5a3 3 0 0 1 6 0v2" /></svg></AdminMetricCard>
+        <AdminMetricCard title="Cần xử lý" value={stats.action} subtitle="Chờ xác nhận, đã xác nhận, đóng gói" tone="blue" trend="+3%"><svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M12 6v6l4 2" /><circle cx="12" cy="12" r="9" /></svg></AdminMetricCard>
+        <AdminMetricCard title="Đang vận hành" value={stats.operating} subtitle="Đang đóng gói và đang giao" tone="emerald" trend="+50%"><svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M3 7h11v10H3z" /><path d="M14 11h4l3 3v3h-7z" /><circle cx="7" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></svg></AdminMetricCard>
+        <AdminMetricCard title="Doanh thu đã giao" value={formatVND(stats.revenue)} subtitle="Chỉ tính đơn đã giao hoàn tất" tone="violet" trend="+18%"><svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M5 20V10m7 10V4m7 16v-7" /><path d="M4 20h16" /></svg></AdminMetricCard>
+        <AdminMetricCard title="Tỉ lệ hủy" value={`${stats.cancelRate}%`} subtitle={`${stats.cancelled} đơn đã hủy trên ${stats.total || 0} đơn`} tone="red" trend="+2%"><svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6l-7-3Z" /><path d="m9 12 2 2 4-5" /></svg></AdminMetricCard>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -334,7 +339,7 @@ export default function AdminOrdersPage() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_520px]">
         <div className="overflow-hidden rounded-[1.35rem] border border-gray-100 bg-white shadow-[0_18px_54px_rgba(15,23,42,.06)]">
           <div className="border-b border-gray-100 bg-white p-3">
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_116px_96px]">
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_116px]">
               <label className="relative block">
                 <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">⌕</span>
                 <input value={search} onChange={event => { setSearch(event.target.value); setPage(1) }} placeholder="Tìm đơn hàng, khách hàng hoặc số điện thoại..." className="h-14 w-full rounded-2xl border border-gray-200 bg-white pl-11 pr-14 text-sm font-bold text-sole-dark shadow-inner outline-none transition focus:border-primary focus:shadow-[0_0_0_4px_rgba(242,106,46,.1)]" />
@@ -344,7 +349,6 @@ export default function AdminOrdersPage() {
                 {TIME_FILTERS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
               <button type="button" onClick={refreshOrders} className="h-14 rounded-2xl border border-gray-200 bg-white px-4 text-sm font-black text-gray-600 shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:text-primary">↻ Làm mới</button>
-              <button type="button" className="h-14 rounded-2xl border border-gray-200 bg-white px-4 text-sm font-black text-gray-600 shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:text-primary">☰ Bộ lọc</button>
             </div>
           </div>
           {(() => {
@@ -423,7 +427,7 @@ export default function AdminOrdersPage() {
             </div>
 
             <div className="max-h-[calc(100vh-230px)] space-y-4 overflow-y-auto p-4">
-              <InfoBlock title="Thông tin khách hàng" icon="♙" tone="orange" action={<button className="rounded-xl border border-gray-200 px-3 py-1.5 text-xs font-black text-gray-500 transition hover:border-primary hover:text-primary">Chỉnh sửa</button>}>
+              <InfoBlock title="Thông tin khách hàng" icon="♙" tone="orange">
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div><p className="text-xs font-bold text-gray-400">Tên khách hàng</p><p className="mt-1 font-black text-sole-dark">{selected.contact?.fullName || 'Khách'}</p></div>
                   <div><p className="text-xs font-bold text-gray-400">Số điện thoại</p><p className="mt-1 font-black text-sole-dark">{selected.contact?.phone || '-'}</p></div>

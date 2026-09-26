@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { formatVND } from '@/lib/utils'
 import AdminPagination from '@/components/admin/AdminPagination'
 import StockAdjustModal from '@/components/admin/StockAdjustModal'
-import { ProductToast } from '@/components/admin/ProductFeedback'
+import { AdminMetricCard, ProductToast } from '@/components/admin/ProductFeedback'
 
 const LOW_STOCK_THRESHOLD = 3
 const SKU_PAGE_SIZE = 12
@@ -34,41 +34,6 @@ const MOVEMENT_LABELS = {
   SALE: 'Bán hàng',
   CANCEL_RETURN: 'Hoàn kho',
   ADJUST: 'Điều chỉnh',
-}
-
-function MetricIcon({ tone, children }) {
-  const tones = {
-    dark: 'bg-[#17191c] text-white',
-    orange: 'bg-orange-50 text-primary',
-    red: 'bg-red-50 text-red-500',
-    green: 'bg-emerald-50 text-emerald-600',
-    blue: 'bg-sky-50 text-sky-600',
-  }
-  return <span className={`grid size-14 shrink-0 place-items-center rounded-full shadow-inner ${tones[tone]}`}>{children}</span>
-}
-
-function InventoryMetricCard({ label, value, hint, tone, trend, children }) {
-  const glow = { green: 'from-emerald-50 to-white', blue: 'from-sky-50 to-white', orange: 'from-orange-50 to-white', red: 'from-red-50 to-white' }
-  const trendTone = tone === 'red' ? 'bg-red-50 text-red-500' : tone === 'blue' ? 'bg-sky-50 text-sky-600' : tone === 'green' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-primary'
-  return (
-    <div className={`group relative overflow-hidden rounded-[26px] border border-gray-200 bg-gradient-to-br ${glow[tone] || glow.green} p-5 shadow-[0_18px_50px_rgba(20,23,28,.07)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_26px_70px_rgba(20,23,28,.12)]`}>
-      <div className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-white/65 blur-2xl" />
-      <div className="relative flex items-center gap-5">
-        <MetricIcon tone={tone}>{children}</MetricIcon>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <p className="text-3xl font-black leading-none tracking-tight text-sole-dark">{value}</p>
-            <span className={`rounded-full px-3 py-1 text-xs font-black shadow-sm ${trendTone}`}>{trend}</span>
-          </div>
-          <p className="mt-3 text-base font-black text-sole-dark">{label}</p>
-          <p className="mt-1 text-xs font-bold text-gray-400">{hint}</p>
-        </div>
-        <div className="hidden items-end gap-1 self-end sm:flex">
-          {[12, 28, 18, 38, 25, 42].map((height, index) => <span key={index} className={`w-1.5 rounded-full ${tone === 'blue' ? 'bg-sky-200' : tone === 'red' ? 'bg-red-200' : tone === 'green' ? 'bg-emerald-200' : 'bg-orange-200'}`} style={{ height }} />)}
-        </div>
-      </div>
-    </div>
-  )
 }
 
 function StockBadge({ stock }) {
@@ -230,7 +195,7 @@ export default function AdminInventoryPage() {
           ['Tồn thấp', metrics.low, `Từ 1 đến ${LOW_STOCK_THRESHOLD} đôi`, 'orange', metrics.low ? `+${metrics.low}` : '0', <svg key="low" viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 9v4m0 4h.01" /><path d="M10.3 4.3 2.8 17.5A2 2 0 0 0 4.5 20h15a2 2 0 0 0 1.7-2.5L13.7 4.3a2 2 0 0 0-3.4 0Z" /></svg>],
           ['Hết hàng', metrics.out, 'Cần nhập bổ sung', 'red', metrics.out ? `+${metrics.out}` : '0%', <svg key="out" viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 6l12 12M18 6 6 18" /><circle cx="12" cy="12" r="9" /></svg>],
         ].map(([label, value, hint, tone, trend, icon]) => (
-          <InventoryMetricCard key={label} label={label} value={value} hint={hint} tone={tone} trend={trend}>{icon}</InventoryMetricCard>
+          <AdminMetricCard key={label} title={label} value={value} subtitle={hint} tone={tone} trend={trend}>{icon}</AdminMetricCard>
         ))}
       </div>
 
@@ -292,18 +257,18 @@ export default function AdminInventoryPage() {
             )}
           </div>
           {advancedOpen && (
-            <div className="relative mt-4 grid gap-3 rounded-[24px] border border-orange-100 bg-gradient-to-br from-orange-50/70 to-white p-4 shadow-inner md:grid-cols-3">
+            <div className="relative mt-4 grid gap-3 rounded-[22px] border border-orange-100 bg-gradient-to-br from-orange-50/70 to-white p-3 shadow-inner md:grid-cols-3">
               <label className="space-y-2">
                 <span className="text-[11px] font-black uppercase tracking-[.14em] text-gray-400">Tồn kho</span>
-                <select value={stockFilter} onChange={event => { setStockFilter(event.target.value); setSkuPage(1) }} className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 text-sm font-black text-gray-600 outline-none transition focus:border-primary">{STOCK_FILTERS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+                <select value={stockFilter} onChange={event => { setStockFilter(event.target.value); setSkuPage(1) }} className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs font-black text-gray-600 shadow-sm outline-none transition hover:border-primary/40 focus:border-primary focus:shadow-[0_0_0_3px_rgba(242,106,46,.1)]">{STOCK_FILTERS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
               </label>
               <label className="space-y-2">
                 <span className="text-[11px] font-black uppercase tracking-[.14em] text-gray-400">Trạng thái bán</span>
-                <select value={statusFilter} onChange={event => { setStatusFilter(event.target.value); setSkuPage(1) }} className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 text-sm font-black text-gray-600 outline-none transition focus:border-primary">{STATUS_FILTERS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+                <select value={statusFilter} onChange={event => { setStatusFilter(event.target.value); setSkuPage(1) }} className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs font-black text-gray-600 shadow-sm outline-none transition hover:border-primary/40 focus:border-primary focus:shadow-[0_0_0_3px_rgba(242,106,46,.1)]">{STATUS_FILTERS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
               </label>
               <label className="space-y-2">
                 <span className="text-[11px] font-black uppercase tracking-[.14em] text-gray-400">Sắp xếp</span>
-                <select value={sort} onChange={event => { setSort(event.target.value); setSkuPage(1) }} className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 text-sm font-black text-gray-600 outline-none transition focus:border-primary">{SORTS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+                <select value={sort} onChange={event => { setSort(event.target.value); setSkuPage(1) }} className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs font-black text-gray-600 shadow-sm outline-none transition hover:border-primary/40 focus:border-primary focus:shadow-[0_0_0_3px_rgba(242,106,46,.1)]">{SORTS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
               </label>
             </div>
           )}
@@ -385,16 +350,6 @@ export default function AdminInventoryPage() {
           <div>
             <h2 className="font-black text-sole-dark">Lịch sử biến động kho</h2>
             <p className="mt-1 text-xs text-gray-400">Ghi nhận bán hàng, hoàn kho và điều chỉnh thủ công.</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" className="inline-flex items-center gap-2 rounded-2xl border border-orange-100 bg-orange-50 px-4 py-2.5 text-xs font-black text-primary">
-              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5v14" /></svg>
-              Thống kê nhanh
-            </button>
-            <button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-[#ff4f24] px-4 py-2.5 text-xs font-black text-white shadow-[0_12px_26px_rgba(242,106,46,.25)]">
-              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4" /><path d="M4 20h16" /></svg>
-              Xuất dữ liệu
-            </button>
           </div>
           </div>
           <div className="relative mt-4 flex flex-col gap-3 xl:flex-row xl:items-center">

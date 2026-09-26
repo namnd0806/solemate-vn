@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { formatVND } from '@/lib/utils'
 import AdminPagination from '@/components/admin/AdminPagination'
-import { ProductToast } from '@/components/admin/ProductFeedback'
+import { AdminConfirm, ProductToast } from '@/components/admin/ProductFeedback'
 
 const EMPTY = {
   code: '', name: '', type: 'PERCENT', value: '', max_discount: '',
@@ -41,6 +41,9 @@ export default function AdminPromotionsPage() {
   const [formError, setFormError] = useState('')
   const [toast, setToast] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [toggleTarget, setToggleTarget] = useState(null)
+  const [saveTarget, setSaveTarget] = useState(null)
+  const [actionBusy, setActionBusy] = useState(false)
   const [page, setPage] = useState(1)
 
   async function load() {
@@ -78,7 +81,7 @@ export default function AdminPromotionsPage() {
 
   async function handleSave(e) {
     e.preventDefault()
-    setSaving(true); setFormError('')
+    setFormError('')
     const payload = {
       ...form,
       value: Number(form.value),
@@ -86,17 +89,25 @@ export default function AdminPromotionsPage() {
       usage_limit: Number(form.usage_limit) || 999999,
       max_discount: form.max_discount ? Number(form.max_discount) : null,
     }
-    const res = editing
-      ? await fetch(`/api/promotions/${editing}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-      : await fetch('/api/promotions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    setSaveTarget({ payload, editingId: editing, code: form.code, isEditing: Boolean(editing) })
+  }
+
+  async function confirmSave() {
+    if (!saveTarget) return
+    setSaving(true)
+    const res = saveTarget.isEditing
+      ? await fetch(`/api/promotions/${saveTarget.editingId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(saveTarget.payload) })
+      : await fetch('/api/promotions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(saveTarget.payload) })
     const data = await res.json()
     setSaving(false)
     if (!data.ok) { setFormError(data.message); return }
-    showToast(editing ? 'Đã cập nhật mã khuyến mãi!' : 'Đã tạo mã mới!')
+    showToast(saveTarget.isEditing ? 'Đã cập nhật mã khuyến mãi!' : 'Đã tạo mã mới!')
+    setSaveTarget(null)
     setShowForm(false); load()
   }
 
   async function toggleEnabled(p) {
+    setActionBusy(true)
     const res = await fetch(`/api/promotions/${p.id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ enabled: !p.enabled })
@@ -104,14 +115,17 @@ export default function AdminPromotionsPage() {
     const data = await res.json()
     if (data.ok) { showToast(p.enabled ? 'Đã tắt mã' : 'Đã bật mã'); load() }
     else showToast(data.message || 'Không thể cập nhật mã.', 'error')
+    setToggleTarget(null)
+    setActionBusy(false)
   }
 
   async function handleDelete(p) {
+    setActionBusy(true)
     const res = await fetch(`/api/promotions/${p.id}`, { method: 'DELETE' })
     const data = await res.json()
     if (data.ok) showToast(data.disabled ? 'Đã tắt mã (có lịch sử dùng)' : 'Đã xóa mã!')
     else showToast(data.message, 'error')
-    setDeleteTarget(null); load()
+    setDeleteTarget(null); setActionBusy(false); load()
   }
 
   const promoTotalPages = Math.max(1, Math.ceil(promos.length / PROMO_PAGE_SIZE))
@@ -121,19 +135,36 @@ export default function AdminPromotionsPage() {
   return (
     <div className="space-y-6">
       <ProductToast key={toast?.id} toast={toast} onClose={() => setToast(null)} />
-
-      {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4">
-            <h3 className="font-bold text-sole-dark text-lg mb-2">Xóa mã khuyến mãi?</h3>
-            <p className="text-gray-500 text-sm mb-6">Mã <strong>{deleteTarget.code}</strong> sẽ bị xóa vĩnh viễn (nếu chưa dùng) hoặc tắt (nếu đã có lượt dùng).</p>
-            <div className="flex gap-3">
-              <button onClick={() => setDeleteTarget(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors">Huỷ</button>
-              <button onClick={() => handleDelete(deleteTarget)} className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-semibold hover:bg-red-600 transition-colors">Xóa</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AdminConfirm
+        open={saveTarget}
+        title={saveTarget?.isEditing ? 'Cập nhật mã khuyến mãi?' : 'Tạo mã khuyến mãi?'}
+        message={saveTarget ? `Xác nhận lưu mã ${saveTarget.code}. Mã này sẽ ảnh hưởng trực tiếp tới bước áp dụng khuyến mãi ở checkout.` : ''}
+        tone="orange"
+        confirmText={saveTarget?.isEditing ? 'Cập nhật mã' : 'Tạo mã'}
+        busy={saving}
+        onCancel={() => setSaveTarget(null)}
+        onConfirm={confirmSave}
+      />
+      <AdminConfirm
+        open={deleteTarget}
+        title="Xóa mã khuyến mãi?"
+        message={deleteTarget ? `Mã ${deleteTarget.code} sẽ bị xóa vĩnh viễn nếu chưa dùng, hoặc tự động tắt nếu đã có lịch sử sử dụng.` : ''}
+        tone="red"
+        confirmText="Xác nhận xóa"
+        busy={actionBusy}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => handleDelete(deleteTarget)}
+      />
+      <AdminConfirm
+        open={toggleTarget}
+        title={toggleTarget?.enabled ? 'Tắt mã khuyến mãi?' : 'Bật mã khuyến mãi?'}
+        message={toggleTarget ? `Mã ${toggleTarget.code} sẽ ${toggleTarget.enabled ? 'ngừng áp dụng trên checkout' : 'được áp dụng lại nếu còn hạn và còn lượt dùng'}.` : ''}
+        tone={toggleTarget?.enabled ? 'orange' : 'emerald'}
+        confirmText={toggleTarget?.enabled ? 'Tắt mã' : 'Bật mã'}
+        busy={actionBusy}
+        onCancel={() => setToggleTarget(null)}
+        onConfirm={() => toggleEnabled(toggleTarget)}
+      />
 
       <div className="flex items-center justify-between">
         <div>
@@ -204,7 +235,7 @@ export default function AdminPromotionsPage() {
               )}
 
               <div className="flex gap-2">
-                <button onClick={() => toggleEnabled(p)}
+                <button onClick={() => setToggleTarget(p)}
                   className={`flex-1 py-2 rounded-xl text-xs font-medium transition-all border ${p.enabled ? 'border-orange-200 text-orange-600 hover:bg-orange-50' : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'}`}>
                   {p.enabled ? 'Tắt mã' : 'Bật mã'}
                 </button>

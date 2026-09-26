@@ -5,7 +5,7 @@ import { formatVND } from '@/lib/utils'
 import Link from 'next/link'
 import { isProductSaleActive } from '@/lib/pricing'
 import AdminPagination from '@/components/admin/AdminPagination'
-import { ProductConfirm, ProductToast } from '@/components/admin/ProductFeedback'
+import { AdminConfirm, AdminMetricCard, ProductConfirm, ProductToast } from '@/components/admin/ProductFeedback'
 
 const EMPTY_PRODUCT = {
   name: '', slug: '', brand: '', gender: 'NAM', category: 'LIFESTYLE',
@@ -31,35 +31,6 @@ function toLocalInput(value) {
   return new Date(date.getTime() - offset).toISOString().slice(0, 16)
 }
 
-function MetricIcon({ children, tone = 'orange' }) {
-  const tones = { orange: 'bg-orange-50 text-primary', green: 'bg-emerald-50 text-emerald-600', blue: 'bg-sky-50 text-sky-600', red: 'bg-red-50 text-red-500' }
-  return <span className={`grid size-14 shrink-0 place-items-center rounded-full shadow-inner ${tones[tone]}`}>{children}</span>
-}
-
-function AdminMetricCard({ label, value, hint, tone, icon, trend = '+12%', children }) {
-  const glow = { green: 'from-emerald-50 to-white', orange: 'from-orange-50 to-white', red: 'from-red-50 to-white', blue: 'from-sky-50 to-white' }
-  const trendTone = tone === 'red' ? 'bg-red-50 text-red-500' : tone === 'blue' ? 'bg-sky-50 text-sky-600' : tone === 'green' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-primary'
-  return (
-    <div className={`group relative overflow-hidden rounded-[26px] border border-gray-200 bg-gradient-to-br ${glow[tone] || glow.orange} p-5 shadow-[0_18px_50px_rgba(20,23,28,.07)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_26px_70px_rgba(20,23,28,.12)]`}>
-      <div className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-white/65 blur-2xl" />
-      <div className="relative flex items-center gap-5">
-        <MetricIcon tone={tone}>{icon || children}</MetricIcon>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <p className="text-3xl font-black leading-none tracking-tight text-sole-dark">{value}</p>
-            <span className={`rounded-full px-3 py-1 text-xs font-black shadow-sm ${trendTone}`}>{trend}</span>
-          </div>
-          <p className="mt-3 text-base font-black text-sole-dark">{label}</p>
-          <p className="mt-1 text-xs font-bold text-gray-400">{hint}</p>
-        </div>
-        <div className="hidden items-end gap-1 self-end sm:flex">
-          {[18, 28, 40, 32].map((height, index) => <span key={index} className={`w-2 rounded-full ${tone === 'blue' ? 'bg-sky-200' : tone === 'red' ? 'bg-red-200' : tone === 'green' ? 'bg-emerald-200' : 'bg-orange-200'}`} style={{ height }} />)}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export default function AdminProductsPage() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -73,6 +44,7 @@ export default function AdminProductsPage() {
   const [uploadingImg, setUploadingImg] = useState(false)
   const [toast, setToast] = useState(null)
   const [confirmTarget, setConfirmTarget] = useState(null)
+  const [saveConfirm, setSaveConfirm] = useState(null)
   const [changingStatus, setChangingStatus] = useState(false)
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [genderFilter, setGenderFilter] = useState('ALL')
@@ -142,7 +114,6 @@ export default function AdminProductsPage() {
 
   async function handleSave(e) {
     e.preventDefault()
-    setSaving(true)
     setError('')
     const payload = {
       product: {
@@ -154,13 +125,20 @@ export default function AdminProductsPage() {
       },
       variants: variants.map(v => ({ ...v, stock: Number(v.stock) })),
     }
-    const url = editing ? `/api/products/${editing}` : '/api/products'
-    const method = editing ? 'PUT' : 'POST'
-    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    setSaveConfirm({ payload, editingId: editing, name: form.name, isEditing: Boolean(editing) })
+  }
+
+  async function confirmSaveProduct() {
+    if (!saveConfirm) return
+    setSaving(true)
+    const url = saveConfirm.isEditing ? `/api/products/${saveConfirm.editingId}` : '/api/products'
+    const method = saveConfirm.isEditing ? 'PUT' : 'POST'
+    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(saveConfirm.payload) })
     const data = await res.json()
     setSaving(false)
     if (!data.ok) { setError(data.message); return }
-    showToast(editing ? 'Đã cập nhật sản phẩm!' : 'Đã thêm sản phẩm!')
+    showToast(saveConfirm.isEditing ? 'Đã cập nhật sản phẩm!' : 'Đã thêm sản phẩm!')
+    setSaveConfirm(null)
     setShowForm(false)
     load()
   }
@@ -201,6 +179,16 @@ export default function AdminProductsPage() {
     <div className="space-y-6">
       <ProductToast key={toast?.id} toast={toast} onClose={() => setToast(null)} />
       <ProductConfirm product={confirmTarget} busy={changingStatus} onCancel={() => setConfirmTarget(null)} onConfirm={confirmStatusChange} />
+      <AdminConfirm
+        open={saveConfirm}
+        title={saveConfirm?.isEditing ? 'Cập nhật sản phẩm?' : 'Tạo sản phẩm mới?'}
+        message={saveConfirm ? `Xác nhận lưu “${saveConfirm.name}”. Thay đổi sẽ ảnh hưởng dữ liệu sản phẩm, giá, sale và biến thể hiển thị trong admin/customer.` : ''}
+        tone="orange"
+        confirmText={saveConfirm?.isEditing ? 'Cập nhật' : 'Tạo sản phẩm'}
+        busy={saving}
+        onCancel={() => setSaveConfirm(null)}
+        onConfirm={confirmSaveProduct}
+      />
 
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -216,7 +204,7 @@ export default function AdminProductsPage() {
           ['Đang khuyến mãi', metrics.sale, 'Sale đúng lịch', 'orange', '+5%', <svg key="b" viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="m4 12 8-8h6l2 2v6l-8 8-8-8Z"/><circle cx="16" cy="8" r="1"/></svg>],
           ['Cần chú ý kho', metrics.lowStock, 'Tổng tồn ≤ 5 đôi', 'red', metrics.lowStock ? `+${metrics.lowStock}` : '0%', <svg key="c" viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7 12 3l8 4v10l-8 4-8-4V7Z"/><path d="M12 12v5m0-9v.01"/></svg>],
           ['Đã bán ghi nhận', metrics.sold, 'Tự động từ đơn hợp lệ', 'blue', '+18%', <svg key="d" viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 20V10m7 10V4m7 16v-7"/></svg>],
-        ].map(([label, value, hint, tone, trend, icon]) => <AdminMetricCard key={label} label={label} value={value} hint={hint} tone={tone} trend={trend}>{icon}</AdminMetricCard>)}
+        ].map(([label, value, hint, tone, trend, icon]) => <AdminMetricCard key={label} title={label} value={value} subtitle={hint} tone={tone} trend={trend}>{icon}</AdminMetricCard>)}
       </div>
 
       <section className="relative overflow-hidden rounded-[30px] border border-gray-200 bg-white p-5 shadow-[0_22px_70px_rgba(20,23,28,.08)]">
@@ -234,7 +222,7 @@ export default function AdminProductsPage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_auto_auto]">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_auto]">
             <label className="relative">
               <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"><svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7 12 3l8 4v10l-8 4-8-4V7Z" /></svg></span>
               <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }} className="h-14 w-full appearance-none rounded-2xl border border-gray-200 bg-white pl-11 pr-9 text-sm font-black text-gray-600 outline-none transition hover:border-primary/40 focus:border-primary"><option value="ALL">Mọi trạng thái</option><option value="ACTIVE">Đang bán</option><option value="INACTIVE">Đã ẩn</option></select>
@@ -255,15 +243,10 @@ export default function AdminProductsPage() {
               <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 12a8 8 0 1 1-2.34-5.66" /><path d="M20 4v6h-6" /></svg>
               Làm mới
             </button>
-            <button type="button" className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-[#ff4f24] px-5 text-sm font-black text-white shadow-[0_12px_26px_rgba(242,106,46,.25)] transition hover:-translate-y-0.5">
-              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 5h16l-6 7v5l-4 2v-7L4 5Z" /></svg>
-              Lọc <span className="grid size-6 place-items-center rounded-full bg-white text-primary">{[search, statusFilter !== 'ALL', genderFilter !== 'ALL', saleFilter !== 'ALL', categoryFilter !== 'ALL'].filter(Boolean).length}</span>
-            </button>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4 text-sm">
             <span className="inline-flex items-center gap-3 font-bold text-gray-500"><svg viewBox="0 0 24 24" className="size-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>Hiển thị <b className="text-sole-dark">{filtered.length}</b> / {products.length} sản phẩm</span>
             <div className="flex items-center gap-3">
-              <label className="hidden items-center gap-3 text-sm font-bold text-gray-500 md:flex">Sắp xếp theo:<select className="h-11 rounded-2xl border border-gray-200 bg-white px-4 text-sm font-black text-gray-600 outline-none"><option>Mới nhất</option></select></label>
               <span className="grid size-11 place-items-center rounded-2xl bg-orange-100 text-primary"><svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" /></svg></span>
             </div>
             {(search || statusFilter !== 'ALL' || genderFilter !== 'ALL' || saleFilter !== 'ALL' || categoryFilter !== 'ALL') && <button type="button" onClick={() => { setSearch(''); setStatusFilter('ALL'); setGenderFilter('ALL'); setSaleFilter('ALL'); setCategoryFilter('ALL'); setPage(1) }} className="font-black text-primary hover:text-primary-deep">Xóa bộ lọc</button>}

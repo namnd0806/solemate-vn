@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { AdminConfirm } from './ProductFeedback'
 
 export default function StockAdjustModal({ variants, onClose, onSuccess, onError }) {
   const [sku, setSku] = useState(variants?.[0]?.sku || '')
@@ -8,6 +9,7 @@ export default function StockAdjustModal({ variants, onClose, onSuccess, onError
   const [note, setNote] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [pendingQuantity, setPendingQuantity] = useState(null)
 
   const selectedVariant = useMemo(() => variants?.find(variant => variant.sku === sku), [variants, sku])
   const parsedDelta = Number.parseInt(delta, 10)
@@ -22,18 +24,24 @@ export default function StockAdjustModal({ variants, onClose, onSuccess, onError
     if (selectedVariant && selectedVariant.stock + quantity < 0) return setError('Tồn kho sau điều chỉnh không thể âm.')
     if (!note.trim()) return setError('Vui lòng nhập ghi chú để lưu vết điều chỉnh.')
 
+    setPendingQuantity(quantity)
+  }
+
+  async function confirmAdjust() {
+    if (!Number.isInteger(pendingQuantity)) return
     setLoading(true)
     try {
       const res = await fetch('/api/stock/adjust', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sku, delta: quantity, note: note.trim() }),
+        body: JSON.stringify({ sku, delta: pendingQuantity, note: note.trim() }),
       })
       const data = await res.json()
       if (!data.ok) {
         setError(data.message)
         onError?.(data.message)
         setLoading(false)
+        setPendingQuantity(null)
         return
       }
       onSuccess?.(data.data)
@@ -42,11 +50,22 @@ export default function StockAdjustModal({ variants, onClose, onSuccess, onError
       setError(message)
       onError?.(message)
       setLoading(false)
+      setPendingQuantity(null)
     }
   }
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-[#08090b]/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" onMouseDown={onClose}>
+      <AdminConfirm
+        open={Number.isInteger(pendingQuantity)}
+        title="Xác nhận điều chỉnh tồn kho?"
+        message={`SKU ${sku} sẽ thay đổi ${pendingQuantity > 0 ? '+' : ''}${pendingQuantity} đôi. Tồn sau điều chỉnh dự kiến là ${projectedStock}. Thao tác này sẽ được ghi vào lịch sử kho.`}
+        tone={pendingQuantity < 0 ? 'red' : 'emerald'}
+        confirmText="Điều chỉnh kho"
+        busy={loading}
+        onCancel={() => setPendingQuantity(null)}
+        onConfirm={confirmAdjust}
+      />
       <div className="w-full max-w-2xl animate-[admin-dialog-in_.28s_cubic-bezier(.2,.8,.2,1)] overflow-hidden rounded-[28px] bg-white shadow-[0_34px_110px_rgba(0,0,0,.35)]" onMouseDown={event => event.stopPropagation()}>
         <div className="relative overflow-hidden bg-[#17191c] px-6 py-5 text-white">
           <div className="absolute right-0 top-0 h-28 w-28 rounded-full bg-primary/25 blur-3xl" />
