@@ -336,10 +336,10 @@ export default function AdminOrdersPage() {
         ))}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_520px]">
+      <div className="grid gap-6 min-[1760px]:grid-cols-[minmax(0,1fr)_520px]">
         <div className="overflow-hidden rounded-[1.35rem] border border-gray-100 bg-white shadow-[0_18px_54px_rgba(15,23,42,.06)]">
           <div className="border-b border-gray-100 bg-white p-3">
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_116px]">
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_116px] min-[1760px]:grid-cols-[minmax(0,1fr)_210px_112px]">
               <label className="relative block">
                 <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">⌕</span>
                 <input value={search} onChange={event => { setSearch(event.target.value); setPage(1) }} placeholder="Tìm đơn hàng, khách hàng hoặc số điện thoại..." className="h-14 w-full rounded-2xl border border-gray-200 bg-white pl-11 pr-14 text-sm font-bold text-sole-dark shadow-inner outline-none transition focus:border-primary focus:shadow-[0_0_0_4px_rgba(242,106,46,.1)]" />
@@ -379,12 +379,12 @@ export default function AdminOrdersPage() {
             {!loading && visibleOrders.length === 0 && <div className="py-12 text-center text-gray-400">Không có đơn hàng</div>}
           </div>
           <div className="hidden overflow-x-auto md:block">
-            <table className="w-full text-sm">
+            <table className="min-w-[980px] w-full text-sm">
               <thead className="border-b border-gray-100 bg-[#f8fafc]">
                 <tr>
                   <th className="w-12 px-5 py-4"><span className="block size-5 rounded-md border border-gray-300 bg-white" /></th>
-                  <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wide text-gray-500">Đơn ↕</th>
-                  <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wide text-gray-500">Khách ↕</th>
+                  <th className="w-[220px] px-4 py-4 text-left text-xs font-black uppercase tracking-wide text-gray-500">Đơn ↕</th>
+                  <th className="w-[190px] px-4 py-4 text-left text-xs font-black uppercase tracking-wide text-gray-500">Khách ↕</th>
                   <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wide text-gray-500">Trạng thái ↕</th>
                   <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wide text-gray-500">Thanh toán ↕</th>
                   <th className="px-4 py-4 text-right text-xs font-black uppercase tracking-wide text-gray-500">Tổng ↕</th>
@@ -395,11 +395,11 @@ export default function AdminOrdersPage() {
                 {loading ? [...Array(5)].map((_, i) => <tr key={i}><td colSpan={7} className="px-4 py-4"><div className="h-4 animate-pulse rounded bg-gray-100" /></td></tr>) : pagedOrders.map(order => (
                   <tr key={order.id} onClick={() => selectOrder(order)} className={`cursor-pointer border-b border-gray-100 transition hover:bg-orange-50/30 ${selected?.id === order.id ? 'bg-orange-50/70 shadow-[inset_4px_0_0_#f26a2e]' : ''}`}>
                     <td className="px-5 py-4"><span className={`grid size-5 place-items-center rounded-md border text-xs font-black ${selected?.id === order.id ? 'border-primary bg-primary text-white' : 'border-gray-300 bg-white text-white'}`}>✓</span></td>
-                    <td className="px-4 py-3"><div className="font-mono text-xs font-black text-sole-dark">#{order.id}</div><div className="mt-1 text-xs text-gray-400">{new Date(order.created_at).toLocaleString('vi-VN')}</div></td>
-                    <td className="px-4 py-3"><div className="font-bold text-gray-700">{order.contact?.fullName || 'Khách'}</div><div className="text-xs text-gray-400">{order.contact?.phone}</div></td>
+                    <td className="px-4 py-3"><div className="break-all font-mono text-xs font-black text-sole-dark">#{order.id}</div><div className="mt-1 text-xs text-gray-400">{new Date(order.created_at).toLocaleString('vi-VN')}</div></td>
+                    <td className="px-4 py-3"><div className="line-clamp-1 font-bold text-gray-700">{order.contact?.fullName || 'Khách'}</div><div className="text-xs text-gray-400">{order.contact?.phone}</div></td>
                     <td className="px-4 py-3"><StatusBadge status={order.status} /></td>
                     <td className="px-4 py-3"><div className="text-xs font-bold text-gray-600">{PAYMENT_METHODS[order.payment_method] || order.payment_method}</div><div className="mt-1"><PaymentBadge order={order} /></div></td>
-                    <td className="px-4 py-3 text-right font-black text-primary">{formatVND(order.total)}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right font-black text-primary">{formatVND(order.total)}</td>
                     <td className="px-5 py-3 text-right"><span className="inline-grid size-9 place-items-center rounded-full border border-gray-100 bg-white text-lg text-sole-dark shadow-sm transition group-hover:text-primary">›</span></td>
                   </tr>
                 ))}

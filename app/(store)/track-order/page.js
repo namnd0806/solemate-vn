@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { formatVND } from '@/lib/utils'
 import { BoxIcon, SearchIcon, TruckIcon } from '@/components/store/Icons'
+import FieldError from '@/components/FieldError'
 
 const STATUS_LABELS = { PENDING:'Chờ xác nhận', CONFIRMED:'Đã xác nhận', PACKING:'Đang chuẩn bị hàng', SHIPPING:'Đang giao', DELIVERED:'Đã giao', CANCELLED:'Đã hủy' }
 const STATUS_COLORS = { PENDING:'bg-yellow-100 text-yellow-700', CONFIRMED:'bg-blue-100 text-blue-700', PACKING:'bg-orange-100 text-orange-700', SHIPPING:'bg-indigo-100 text-indigo-700', DELIVERED:'bg-green-100 text-green-700', CANCELLED:'bg-red-100 text-red-600' }
@@ -11,18 +12,29 @@ export default function TrackOrderPage() {
   const [form, setForm] = useState({ orderId: '', phone: '' })
   const [order, setOrder] = useState(null)
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
     setOrder(null)
+    const nextErrors = {}
+    if (!form.orderId.trim()) nextErrors.orderId = 'Vui lòng nhập mã đơn hàng.'
+    if (!form.phone.trim()) nextErrors.phone = 'Vui lòng nhập số điện thoại đặt hàng.'
+    setFieldErrors(nextErrors)
+    if (Object.keys(nextErrors).length) return
     setLoading(true)
     const res = await fetch('/api/orders/lookup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) })
     const data = await res.json()
     setLoading(false)
     if (!data.ok) { setError(data.message); return }
     setOrder(data.data)
+  }
+
+  function updateField(key, value) {
+    setForm(p => ({ ...p, [key]: value }))
+    setFieldErrors(p => ({ ...p, [key]: '' }))
   }
 
   return (
@@ -41,17 +53,19 @@ export default function TrackOrderPage() {
         </section>
 
         <div data-reveal>
-          <form onSubmit={handleSubmit} className="mb-6 space-y-5 rounded-[24px] border border-gray-200 bg-white p-6 shadow-[0_18px_55px_rgba(20,23,28,.08)] sm:p-8">
+          <form onSubmit={handleSubmit} noValidate className="mb-6 space-y-5 rounded-[24px] border border-gray-200 bg-white p-6 shadow-[0_18px_55px_rgba(20,23,28,.08)] sm:p-8">
             <div><p className="section-kicker">Thông tin đơn hàng</p><h2 className="mt-1.5 text-2xl font-black text-sole-dark">Tìm đơn của bạn</h2></div>
             <div>
               <label htmlFor="orderId" className="mb-1.5 block text-sm font-semibold text-gray-600">Mã đơn hàng</label>
-              <input id="orderId" required value={form.orderId} onChange={e => setForm(p => ({...p, orderId: e.target.value}))} placeholder="VD: SMVN-17094823451234" className="form-field" />
+              <input id="orderId" value={form.orderId} onChange={e => updateField('orderId', e.target.value)} placeholder="VD: SMVN-17094823451234" className="form-field" aria-invalid={Boolean(fieldErrors.orderId)} aria-describedby="track-order-orderId-error" data-testid="track-order-orderId-input" />
+              <FieldError id="track-order-orderId">{fieldErrors.orderId}</FieldError>
             </div>
             <div>
               <label htmlFor="phone" className="mb-1.5 block text-sm font-semibold text-gray-600">Số điện thoại đặt hàng</label>
-              <input id="phone" type="tel" required value={form.phone} onChange={e => setForm(p => ({...p, phone: e.target.value}))} placeholder="VD: 0912345678" className="form-field" />
+              <input id="phone" type="tel" value={form.phone} onChange={e => updateField('phone', e.target.value)} placeholder="VD: 0912345678" className="form-field" aria-invalid={Boolean(fieldErrors.phone)} aria-describedby="track-order-phone-error" data-testid="track-order-phone-input" />
+              <FieldError id="track-order-phone">{fieldErrors.phone}</FieldError>
             </div>
-            {error && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600">{error}</p>}
+            {error && <p role="alert" data-testid="track-order-form-error" className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600">{error}</p>}
             <button type="submit" disabled={loading} className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 font-bold text-white shadow-[0_10px_24px_rgba(242,106,46,.22)] transition hover:-translate-y-0.5 hover:bg-primary-deep disabled:cursor-not-allowed disabled:opacity-50">
               <SearchIcon className="size-4" /> {loading ? 'Đang tra cứu...' : 'Tra cứu đơn hàng'}
             </button>

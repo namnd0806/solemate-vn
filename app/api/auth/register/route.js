@@ -8,7 +8,7 @@ export async function POST(request) {
     const body = await request.json()
     const { firstName, lastName, email, phone, password } = body
 
-    // Validate required fields
+    // Validate mandatory fields
     if (!firstName?.trim() || !lastName?.trim()) {
       return NextResponse.json({ ok: false, message: 'Họ tên không được để trống.' }, { status: 400 })
     }

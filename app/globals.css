@@ -92,6 +92,13 @@ button, a { -webkit-tap-highlight-color: transparent; }
 }
 
 .form-field:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(242, 106, 46, .11); }
+.form-field[aria-invalid="true"],
+input[aria-invalid="true"],
+select[aria-invalid="true"],
+textarea[aria-invalid="true"] {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, .1);
+}
 
 .admin-dark body { background: #0c0e10; color: #f5f6f7; }
 .admin-dark .admin-shell,

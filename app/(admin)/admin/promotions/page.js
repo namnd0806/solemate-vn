@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { formatVND } from '@/lib/utils'
 import AdminPagination from '@/components/admin/AdminPagination'
 import { AdminConfirm, ProductToast } from '@/components/admin/ProductFeedback'
+import FieldError from '@/components/FieldError'
 
 const EMPTY = {
   code: '', name: '', type: 'PERCENT', value: '', max_discount: '',
@@ -39,6 +40,7 @@ export default function AdminPromotionsPage() {
   const [form, setForm] = useState(EMPTY)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
   const [toast, setToast] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [toggleTarget, setToggleTarget] = useState(null)
@@ -65,7 +67,7 @@ export default function AdminPromotionsPage() {
   }
 
   function openNew() {
-    setForm(EMPTY); setEditing(null); setFormError(''); setShowForm(true)
+    setForm(EMPTY); setEditing(null); setFormError(''); setFieldErrors({}); setShowForm(true)
   }
 
   function openEdit(p) {
@@ -76,12 +78,26 @@ export default function AdminPromotionsPage() {
       max_discount: p.max_discount ?? '',
       value: p.value, min_spend: p.min_spend, usage_limit: p.usage_limit,
     })
-    setEditing(p.id); setFormError(''); setShowForm(true)
+    setEditing(p.id); setFormError(''); setFieldErrors({}); setShowForm(true)
+  }
+
+  function updateField(key, value) {
+    setForm(p => ({ ...p, [key]: value }))
+    setFieldErrors(p => ({ ...p, [key]: '' }))
   }
 
   async function handleSave(e) {
     e.preventDefault()
     setFormError('')
+    const nextErrors = {}
+    if (!form.code.trim()) nextErrors.code = 'Vui lòng nhập mã code.'
+    if (!form.name.trim()) nextErrors.name = 'Vui lòng nhập tên mã khuyến mãi.'
+    if (!form.value || Number(form.value) <= 0) nextErrors.value = 'Vui lòng nhập giá trị khuyến mãi hợp lệ.'
+    if (!form.start_at) nextErrors.start_at = 'Vui lòng chọn thời gian bắt đầu.'
+    if (!form.end_at) nextErrors.end_at = 'Vui lòng chọn thời gian kết thúc.'
+    if (form.start_at && form.end_at && new Date(form.start_at) >= new Date(form.end_at)) nextErrors.end_at = 'Thời gian kết thúc phải sau thời gian bắt đầu.'
+    setFieldErrors(nextErrors)
+    if (Object.keys(nextErrors).length) return
     const payload = {
       ...form,
       value: Number(form.value),
@@ -264,16 +280,17 @@ export default function AdminPromotionsPage() {
               <h2 className="text-xl font-bold text-sole-dark">{editing ? 'Chỉnh sửa mã' : 'Tạo mã mới'}</h2>
               <button onClick={() => setShowForm(false)} className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500 transition-colors">✕</button>
             </div>
-            <form onSubmit={handleSave} className="p-6 space-y-4">
+            <form onSubmit={handleSave} noValidate className="p-6 space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">Mã code *</label>
-                  <input required value={form.code} onChange={e => setForm(p => ({...p, code: e.target.value.toUpperCase()}))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-mono outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all uppercase" />
+                  <input value={form.code} onChange={e => updateField('code', e.target.value.toUpperCase())}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-mono outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all uppercase" aria-invalid={Boolean(fieldErrors.code)} aria-describedby="promotion-code-error" data-testid="promotion-code-input" />
+                  <FieldError id="promotion-code">{fieldErrors.code}</FieldError>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">Loại</label>
-                  <select value={form.type} onChange={e => setForm(p => ({...p, type: e.target.value}))}
+                  <select value={form.type} onChange={e => updateField('type', e.target.value)}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary transition-all">
                     <option value="PERCENT">Phần trăm (%)</option>
                     <option value="FIXED">Cố định (VND)</option>
@@ -281,41 +298,45 @@ export default function AdminPromotionsPage() {
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-medium text-gray-500 mb-1">Tên mã *</label>
-                  <input required value={form.name} onChange={e => setForm(p => ({...p, name: e.target.value}))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
+                  <input value={form.name} onChange={e => updateField('name', e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" aria-invalid={Boolean(fieldErrors.name)} aria-describedby="promotion-name-error" data-testid="promotion-name-input" />
+                  <FieldError id="promotion-name">{fieldErrors.name}</FieldError>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">Giá trị *</label>
-                  <input required type="number" min="1" value={form.value} onChange={e => setForm(p => ({...p, value: e.target.value}))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
+                  <input type="number" min="1" value={form.value} onChange={e => updateField('value', e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" aria-invalid={Boolean(fieldErrors.value)} aria-describedby="promotion-value-error" data-testid="promotion-value-input" />
+                  <FieldError id="promotion-value">{fieldErrors.value}</FieldError>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">Giảm tối đa (VND)</label>
-                  <input type="number" value={form.max_discount} onChange={e => setForm(p => ({...p, max_discount: e.target.value}))}
+                  <input type="number" value={form.max_discount} onChange={e => updateField('max_discount', e.target.value)}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">Đơn tối thiểu</label>
-                  <input type="number" min="0" value={form.min_spend} onChange={e => setForm(p => ({...p, min_spend: e.target.value}))}
+                  <input type="number" min="0" value={form.min_spend} onChange={e => updateField('min_spend', e.target.value)}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">Giới hạn lượt dùng</label>
-                  <input type="number" min="1" value={form.usage_limit} onChange={e => setForm(p => ({...p, usage_limit: e.target.value}))}
+                  <input type="number" min="1" value={form.usage_limit} onChange={e => updateField('usage_limit', e.target.value)}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">Bắt đầu *</label>
-                  <input required type="datetime-local" value={form.start_at} onChange={e => setForm(p => ({...p, start_at: e.target.value}))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary transition-all" />
+                  <input type="datetime-local" value={form.start_at} onChange={e => updateField('start_at', e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary transition-all" aria-invalid={Boolean(fieldErrors.start_at)} aria-describedby="promotion-start_at-error" data-testid="promotion-start_at-input" />
+                  <FieldError id="promotion-start_at">{fieldErrors.start_at}</FieldError>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">Kết thúc *</label>
-                  <input required type="datetime-local" value={form.end_at} onChange={e => setForm(p => ({...p, end_at: e.target.value}))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary transition-all" />
+                  <input type="datetime-local" value={form.end_at} onChange={e => updateField('end_at', e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary transition-all" aria-invalid={Boolean(fieldErrors.end_at)} aria-describedby="promotion-end_at-error" data-testid="promotion-end_at-input" />
+                  <FieldError id="promotion-end_at">{fieldErrors.end_at}</FieldError>
                 </div>
               </div>
-              {formError && <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl px-4 py-3 text-sm">{formError}</div>}
+              {formError && <div role="alert" data-testid="promotion-form-error" className="bg-red-50 border border-red-200 text-red-600 rounded-xl px-4 py-3 text-sm">{formError}</div>}
               <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-2 sm:flex-row sm:justify-end">
                 <button type="button" onClick={() => setShowForm(false)}
                   className="rounded-xl border border-gray-200 px-5 py-2.5 text-sm text-gray-600 transition-colors hover:bg-gray-50">Huỷ</button>

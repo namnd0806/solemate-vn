@@ -3,6 +3,7 @@
 import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import FieldError from '@/components/FieldError'
 
 function LoginForm() {
   const router = useRouter()
@@ -10,11 +11,17 @@ function LoginForm() {
   const returnUrl = searchParams.get('returnUrl') || '/'
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    const nextErrors = {}
+    if (!form.email.trim()) nextErrors.email = 'Vui lòng nhập email hoặc tài khoản.'
+    if (!form.password.trim()) nextErrors.password = 'Vui lòng nhập mật khẩu.'
+    setFieldErrors(nextErrors)
+    if (Object.keys(nextErrors).length) return
     setLoading(true)
     const res = await fetch('/api/auth/login', {
       method: 'POST',
@@ -28,31 +35,44 @@ function LoginForm() {
     router.refresh()
   }
 
+  function updateField(key, value) {
+    setForm(p => ({ ...p, [key]: value }))
+    setFieldErrors(p => ({ ...p, [key]: '' }))
+  }
+
   return (
     <div className="surface-card w-full max-w-md p-7 sm:p-9" data-reveal>
       <span className="section-kicker">Welcome back</span>
       <h1 className="mt-2 text-3xl font-black tracking-tight text-sole-dark">Đăng nhập</h1>
       <p className="mb-7 mt-2 text-sm text-gray-400">Tiếp tục hành trình cùng SoleMate VN.</p>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} noValidate className="space-y-4">
         <div>
           <label className="block text-sm text-gray-600 mb-1">Email hoặc tài khoản</label>
           <input
-            type="text" required value={form.email}
-            onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+            type="text" value={form.email}
+            onChange={e => updateField('email', e.target.value)}
             className="form-field"
             autoComplete="username"
+            aria-invalid={Boolean(fieldErrors.email)}
+            aria-describedby="customer-login-email-error"
+            data-testid="customer-login-email-input"
           />
+          <FieldError id="customer-login-email">{fieldErrors.email}</FieldError>
         </div>
         <div>
           <label className="block text-sm text-gray-600 mb-1">Mật khẩu</label>
           <input
-            type="password" required value={form.password}
-            onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
+            type="password" value={form.password}
+            onChange={e => updateField('password', e.target.value)}
             className="form-field"
             autoComplete="current-password"
+            aria-invalid={Boolean(fieldErrors.password)}
+            aria-describedby="customer-login-password-error"
+            data-testid="customer-login-password-input"
           />
+          <FieldError id="customer-login-password">{fieldErrors.password}</FieldError>
         </div>
-        {error && <p className="text-red-600 text-sm">{error}</p>}
+        {error && <p role="alert" data-testid="customer-login-form-error" className="text-red-600 text-sm">{error}</p>}
         <button
           type="submit" disabled={loading}
           className="btn-primary mt-2 w-full disabled:opacity-50"

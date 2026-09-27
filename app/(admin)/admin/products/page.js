@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { isProductSaleActive } from '@/lib/pricing'
 import AdminPagination from '@/components/admin/AdminPagination'
 import { AdminConfirm, AdminMetricCard, ProductConfirm, ProductToast } from '@/components/admin/ProductFeedback'
+import FieldError from '@/components/FieldError'
 
 const EMPTY_PRODUCT = {
   name: '', slug: '', brand: '', gender: 'NAM', category: 'LIFESTYLE',
@@ -40,6 +41,7 @@ export default function AdminProductsPage() {
   const [variants, setVariants] = useState([{ ...EMPTY_VARIANT }])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
   const [search, setSearch] = useState('')
   const [uploadingImg, setUploadingImg] = useState(false)
   const [toast, setToast] = useState(null)
@@ -82,6 +84,7 @@ export default function AdminProductsPage() {
     setVariants([{ ...EMPTY_VARIANT }])
     setEditing(null)
     setError('')
+    setFieldErrors({})
     setShowForm(true)
   }
 
@@ -98,7 +101,22 @@ export default function AdminProductsPage() {
     })) || [{ ...EMPTY_VARIANT }])
     setEditing(p.id)
     setError('')
+    setFieldErrors({})
     setShowForm(true)
+  }
+
+  function updateFormField(key, value) {
+    setForm(p => ({ ...p, [key]: value }))
+    setFieldErrors(p => ({ ...p, [key]: '' }))
+  }
+
+  function updateVariantField(index, key, value) {
+    setVariants(current => {
+      const next = [...current]
+      next[index] = { ...next[index], [key]: value }
+      return next
+    })
+    setFieldErrors(p => ({ ...p, [`variant-${index}-${key}`]: '' }))
   }
 
   async function uploadImage(file) {
@@ -115,6 +133,22 @@ export default function AdminProductsPage() {
   async function handleSave(e) {
     e.preventDefault()
     setError('')
+    const nextErrors = {}
+    if (!form.name.trim()) nextErrors.name = 'Vui lòng nhập tên sản phẩm.'
+    if (!form.slug.trim()) nextErrors.slug = 'Vui lòng nhập slug.'
+    if (!form.brand.trim()) nextErrors.brand = 'Vui lòng chọn thương hiệu.'
+    if (!form.price || Number(form.price) <= 0) nextErrors.price = 'Vui lòng nhập giá gốc hợp lệ.'
+    variants.forEach((variant, index) => {
+      if (!variant.sku.trim()) nextErrors[`variant-${index}-sku`] = 'Vui lòng nhập SKU.'
+      if (!variant.color.trim()) nextErrors[`variant-${index}-color`] = 'Vui lòng nhập màu.'
+      if (!String(variant.size).trim()) nextErrors[`variant-${index}-size`] = 'Vui lòng nhập size.'
+      if (!editing && (variant.stock === '' || Number(variant.stock) < 0)) nextErrors[`variant-${index}-stock`] = 'Tồn kho phải lớn hơn hoặc bằng 0.'
+    })
+    setFieldErrors(nextErrors)
+    if (Object.keys(nextErrors).length) {
+      setError('Vui lòng kiểm tra các trường màu đỏ trước khi lưu sản phẩm.')
+      return
+    }
     const payload = {
       product: {
         ...form,
@@ -328,7 +362,7 @@ export default function AdminProductsPage() {
               </div>
             </div>
 
-            <form onSubmit={handleSave} className="grid gap-0 lg:grid-cols-[340px_1fr]">
+            <form onSubmit={handleSave} noValidate className="grid gap-0 lg:grid-cols-[340px_1fr]">
               <aside className="border-b border-gray-100 bg-[#f7f8f9] p-6 lg:border-b-0 lg:border-r">
                 <label className="mb-3 block text-xs font-black uppercase tracking-[.14em] text-gray-400">Ảnh sản phẩm</label>
                 <button type="button" onClick={() => fileRef.current?.click()} className="group relative aspect-square w-full overflow-hidden rounded-[26px] border border-dashed border-gray-300 bg-white shadow-inner transition hover:border-primary/70">
@@ -370,17 +404,17 @@ export default function AdminProductsPage() {
                       </label>
                     </div>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <label className="sm:col-span-2"><span className="mb-1.5 block text-xs font-black text-gray-500">Tên sản phẩm *</span><input required value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value, slug: editing ? p.slug : slugify(e.target.value) }))} className="form-field" /></label>
-                      <label><span className="mb-1.5 block text-xs font-black text-gray-500">Slug *</span><input required value={form.slug} onChange={e => setForm(p => ({ ...p, slug: e.target.value }))} className="form-field" /></label>
-                      <label><span className="mb-1.5 block text-xs font-black text-gray-500">Thương hiệu *</span><select required value={form.brand} onChange={e => setForm(p => ({ ...p, brand: e.target.value }))} className="form-field">{BRANDS.map(b => <option key={b} value={b}>{b}</option>)}</select></label>
-                      <label><span className="mb-1.5 block text-xs font-black text-gray-500">Giới tính *</span><select value={form.gender} onChange={e => setForm(p => ({ ...p, gender: e.target.value }))} className="form-field">{GENDERS.map(g => <option key={g} value={g}>{g}</option>)}</select></label>
-                      <label><span className="mb-1.5 block text-xs font-black text-gray-500">Danh mục *</span><select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} className="form-field">{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></label>
-                      <label><span className="mb-1.5 block text-xs font-black text-gray-500">Giá gốc (VNĐ) *</span><input required type="number" min="1" value={form.price} onChange={e => setForm(p => ({ ...p, price: e.target.value }))} className="form-field" /></label>
-                      <label><span className="mb-1.5 block text-xs font-black text-gray-500">Giá sale (VNĐ)</span><input type="number" min="1" value={form.sale_price} onChange={e => setForm(p => ({ ...p, sale_price: e.target.value }))} className="form-field" /></label>
-                      <label><span className="mb-1.5 block text-xs font-black text-gray-500">Bắt đầu sale</span><input type="datetime-local" value={form.sale_start_at} onChange={e => setForm(p => ({ ...p, sale_start_at: e.target.value }))} disabled={!form.sale_price} className="form-field disabled:bg-gray-50 disabled:text-gray-400" /></label>
-                      <label><span className="mb-1.5 block text-xs font-black text-gray-500">Kết thúc sale</span><input type="datetime-local" value={form.sale_end_at} onChange={e => setForm(p => ({ ...p, sale_end_at: e.target.value }))} disabled={!form.sale_price} className="form-field disabled:bg-gray-50 disabled:text-gray-400" /></label>
-                      <label><span className="mb-1.5 block text-xs font-black text-gray-500">Trạng thái</span><select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="form-field"><option value="ACTIVE">Đang bán</option><option value="INACTIVE">Ẩn</option></select></label>
-                      <label className="sm:col-span-2"><span className="mb-1.5 block text-xs font-black text-gray-500">Mô tả</span><textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3} className="form-field resize-none" /></label>
+                      <label className="sm:col-span-2"><span className="mb-1.5 block text-xs font-black text-gray-500">Tên sản phẩm *</span><input value={form.name} onChange={e => { updateFormField('name', e.target.value); if (!editing) updateFormField('slug', slugify(e.target.value)) }} className="form-field" aria-invalid={Boolean(fieldErrors.name)} aria-describedby="product-name-error" data-testid="product-name-input" /><FieldError id="product-name">{fieldErrors.name}</FieldError></label>
+                      <label><span className="mb-1.5 block text-xs font-black text-gray-500">Slug *</span><input value={form.slug} onChange={e => updateFormField('slug', e.target.value)} className="form-field" aria-invalid={Boolean(fieldErrors.slug)} aria-describedby="product-slug-error" data-testid="product-slug-input" /><FieldError id="product-slug">{fieldErrors.slug}</FieldError></label>
+                      <label><span className="mb-1.5 block text-xs font-black text-gray-500">Thương hiệu *</span><select value={form.brand} onChange={e => updateFormField('brand', e.target.value)} className="form-field" aria-invalid={Boolean(fieldErrors.brand)} aria-describedby="product-brand-error" data-testid="product-brand-input"><option value="">Chọn thương hiệu</option>{BRANDS.map(b => <option key={b} value={b}>{b}</option>)}</select><FieldError id="product-brand">{fieldErrors.brand}</FieldError></label>
+                      <label><span className="mb-1.5 block text-xs font-black text-gray-500">Giới tính *</span><select value={form.gender} onChange={e => updateFormField('gender', e.target.value)} className="form-field">{GENDERS.map(g => <option key={g} value={g}>{g}</option>)}</select></label>
+                      <label><span className="mb-1.5 block text-xs font-black text-gray-500">Danh mục *</span><select value={form.category} onChange={e => updateFormField('category', e.target.value)} className="form-field">{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></label>
+                      <label><span className="mb-1.5 block text-xs font-black text-gray-500">Giá gốc (VNĐ) *</span><input type="number" min="1" value={form.price} onChange={e => updateFormField('price', e.target.value)} className="form-field" aria-invalid={Boolean(fieldErrors.price)} aria-describedby="product-price-error" data-testid="product-price-input" /><FieldError id="product-price">{fieldErrors.price}</FieldError></label>
+                      <label><span className="mb-1.5 block text-xs font-black text-gray-500">Giá sale (VNĐ)</span><input type="number" min="1" value={form.sale_price} onChange={e => updateFormField('sale_price', e.target.value)} className="form-field" /></label>
+                      <label><span className="mb-1.5 block text-xs font-black text-gray-500">Bắt đầu sale</span><input type="datetime-local" value={form.sale_start_at} onChange={e => updateFormField('sale_start_at', e.target.value)} disabled={!form.sale_price} className="form-field disabled:bg-gray-50 disabled:text-gray-400" /></label>
+                      <label><span className="mb-1.5 block text-xs font-black text-gray-500">Kết thúc sale</span><input type="datetime-local" value={form.sale_end_at} onChange={e => updateFormField('sale_end_at', e.target.value)} disabled={!form.sale_price} className="form-field disabled:bg-gray-50 disabled:text-gray-400" /></label>
+                      <label><span className="mb-1.5 block text-xs font-black text-gray-500">Trạng thái</span><select value={form.status} onChange={e => updateFormField('status', e.target.value)} className="form-field"><option value="ACTIVE">Đang bán</option><option value="INACTIVE">Ẩn</option></select></label>
+                      <label className="sm:col-span-2"><span className="mb-1.5 block text-xs font-black text-gray-500">Mô tả</span><textarea value={form.description} onChange={e => updateFormField('description', e.target.value)} rows={3} className="form-field resize-none" /></label>
                     </div>
                   </section>
 
@@ -391,10 +425,22 @@ export default function AdminProductsPage() {
                       <div className="max-h-64 divide-y divide-gray-100 overflow-y-auto">
                         {variants.map((v, i) => (
                           <div key={i} className="grid grid-cols-1 gap-2 p-3 md:grid-cols-[1.4fr_1fr_.8fr_.8fr_42px]">
-                            <input placeholder="SKU" value={v.sku} onChange={e => { const nv = [...variants]; nv[i] = { ...nv[i], sku: e.target.value }; setVariants(nv) }} className="rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10" />
-                            <input placeholder="Màu" value={v.color} onChange={e => { const nv = [...variants]; nv[i] = { ...nv[i], color: e.target.value }; setVariants(nv) }} className="rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10" />
-                            <input placeholder="Size" value={v.size} onChange={e => { const nv = [...variants]; nv[i] = { ...nv[i], size: e.target.value }; setVariants(nv) }} className="rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10" />
-                            <input type="number" min="0" placeholder="Tồn" value={v.stock} disabled={Boolean(editing)} onChange={e => { const nv = [...variants]; nv[i] = { ...nv[i], stock: e.target.value }; setVariants(nv) }} className="rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:bg-gray-100 disabled:text-gray-400" />
+                            <div>
+                              <input placeholder="SKU" value={v.sku} onChange={e => updateVariantField(i, 'sku', e.target.value)} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10" aria-invalid={Boolean(fieldErrors[`variant-${i}-sku`])} aria-describedby={`product-variant-${i}-sku-error`} data-testid={`product-variant-${i}-sku-input`} />
+                              <FieldError id={`product-variant-${i}-sku`}>{fieldErrors[`variant-${i}-sku`]}</FieldError>
+                            </div>
+                            <div>
+                              <input placeholder="Màu" value={v.color} onChange={e => updateVariantField(i, 'color', e.target.value)} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10" aria-invalid={Boolean(fieldErrors[`variant-${i}-color`])} aria-describedby={`product-variant-${i}-color-error`} data-testid={`product-variant-${i}-color-input`} />
+                              <FieldError id={`product-variant-${i}-color`}>{fieldErrors[`variant-${i}-color`]}</FieldError>
+                            </div>
+                            <div>
+                              <input placeholder="Size" value={v.size} onChange={e => updateVariantField(i, 'size', e.target.value)} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10" aria-invalid={Boolean(fieldErrors[`variant-${i}-size`])} aria-describedby={`product-variant-${i}-size-error`} data-testid={`product-variant-${i}-size-input`} />
+                              <FieldError id={`product-variant-${i}-size`}>{fieldErrors[`variant-${i}-size`]}</FieldError>
+                            </div>
+                            <div>
+                              <input type="number" min="0" placeholder="Tồn" value={v.stock} disabled={Boolean(editing)} onChange={e => updateVariantField(i, 'stock', e.target.value)} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-xs font-bold outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:bg-gray-100 disabled:text-gray-400" aria-invalid={Boolean(fieldErrors[`variant-${i}-stock`])} aria-describedby={`product-variant-${i}-stock-error`} data-testid={`product-variant-${i}-stock-input`} />
+                              <FieldError id={`product-variant-${i}-stock`}>{fieldErrors[`variant-${i}-stock`]}</FieldError>
+                            </div>
                             <button type="button" onClick={() => setVariants(v => v.filter((_, j) => j !== i))} disabled={variants.length === 1} className="grid size-10 place-items-center rounded-xl text-red-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-30" aria-label="Xóa biến thể"><svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 6l12 12M18 6 6 18" /></svg></button>
                           </div>
                         ))}

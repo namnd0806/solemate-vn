@@ -3,18 +3,28 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import FieldError from '@/components/FieldError'
 
 export default function RegisterPage() {
   const router = useRouter()
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', password: '', confirm: '' })
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
-    if (form.password.length < 6) return setError('Mật khẩu phải có ít nhất 6 ký tự.')
-    if (form.password !== form.confirm) return setError('Mật khẩu xác nhận không khớp.')
+    const nextErrors = {}
+    if (!form.lastName.trim()) nextErrors.lastName = 'Vui lòng nhập họ.'
+    if (!form.firstName.trim()) nextErrors.firstName = 'Vui lòng nhập tên.'
+    if (!form.email.trim()) nextErrors.email = 'Vui lòng nhập email.'
+    if (!form.password.trim()) nextErrors.password = 'Vui lòng nhập mật khẩu.'
+    else if (form.password.length < 6) nextErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự.'
+    if (!form.confirm.trim()) nextErrors.confirm = 'Vui lòng nhập xác nhận mật khẩu.'
+    else if (form.password !== form.confirm) nextErrors.confirm = 'Mật khẩu xác nhận không khớp.'
+    setFieldErrors(nextErrors)
+    if (Object.keys(nextErrors).length) return
     setLoading(true)
     const res = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) })
     const data = await res.json()
@@ -24,6 +34,11 @@ export default function RegisterPage() {
     router.refresh()
   }
 
+  function updateField(key, value) {
+    setForm(p => ({ ...p, [key]: value }))
+    setFieldErrors(p => ({ ...p, [key]: '' }))
+  }
+
   return (
     <div className="relative flex min-h-[70vh] items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_18%_0%,rgba(242,106,46,.13),transparent_35%),#f5f6f7] px-4 py-16">
       <div className="pointer-events-none absolute -right-32 -top-32 size-80 rounded-full border-[45px] border-primary/8" />
@@ -31,24 +46,27 @@ export default function RegisterPage() {
         <span className="section-kicker">Join SoleMate</span>
         <h1 className="mt-2 text-3xl font-black tracking-tight text-sole-dark">Đăng ký tài khoản</h1>
         <p className="mb-7 mt-2 text-sm text-gray-400">Lưu wishlist và theo dõi mọi đơn hàng dễ dàng.</p>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="block text-sm text-gray-600 mb-1">Họ *</label>
-              <input required value={form.lastName} onChange={e => setForm(p => ({...p, lastName: e.target.value}))} className="form-field" />
+              <input value={form.lastName} onChange={e => updateField('lastName', e.target.value)} className="form-field" aria-invalid={Boolean(fieldErrors.lastName)} aria-describedby="register-lastName-error" data-testid="register-lastName-input" />
+              <FieldError id="register-lastName">{fieldErrors.lastName}</FieldError>
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">Tên *</label>
-              <input required value={form.firstName} onChange={e => setForm(p => ({...p, firstName: e.target.value}))} className="form-field" />
+              <input value={form.firstName} onChange={e => updateField('firstName', e.target.value)} className="form-field" aria-invalid={Boolean(fieldErrors.firstName)} aria-describedby="register-firstName-error" data-testid="register-firstName-input" />
+              <FieldError id="register-firstName">{fieldErrors.firstName}</FieldError>
             </div>
           </div>
-          {[['email','Email *','email',true],['phone','Số điện thoại','tel',false],['password','Mật khẩu *','password',true],['confirm','Xác nhận mật khẩu *','password',true]].map(([k,l,t,r]) => (
+          {[['email','Email *','email'],['phone','Số điện thoại','tel'],['password','Mật khẩu *','password'],['confirm','Xác nhận mật khẩu *','password']].map(([k,l,t]) => (
             <div key={k}>
               <label className="block text-sm text-gray-600 mb-1">{l}</label>
-              <input type={t} required={r} value={form[k]} onChange={e => setForm(p => ({...p,[k]:e.target.value}))} className="form-field" />
+              <input type={t} value={form[k]} onChange={e => updateField(k, e.target.value)} className="form-field" aria-invalid={Boolean(fieldErrors[k])} aria-describedby={`register-${k}-error`} data-testid={`register-${k}-input`} />
+              <FieldError id={`register-${k}`}>{fieldErrors[k]}</FieldError>
             </div>
           ))}
-          {error && <p className="text-red-600 text-sm">{error}</p>}
+          {error && <p role="alert" data-testid="register-form-error" className="text-red-600 text-sm">{error}</p>}
           <button type="submit" disabled={loading} className="btn-primary mt-2 w-full disabled:opacity-50">
             {loading ? 'Đang đăng ký...' : 'Đăng ký'}
           </button>

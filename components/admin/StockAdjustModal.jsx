@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { AdminConfirm } from './ProductFeedback'
+import FieldError from '@/components/FieldError'
 
 export default function StockAdjustModal({ variants, onClose, onSuccess, onError }) {
   const [sku, setSku] = useState(variants?.[0]?.sku || '')
@@ -9,6 +10,7 @@ export default function StockAdjustModal({ variants, onClose, onSuccess, onError
   const [note, setNote] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
   const [pendingQuantity, setPendingQuantity] = useState(null)
 
   const selectedVariant = useMemo(() => variants?.find(variant => variant.sku === sku), [variants, sku])
@@ -18,13 +20,24 @@ export default function StockAdjustModal({ variants, onClose, onSuccess, onError
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    const nextErrors = {}
     const quantity = Number.parseInt(delta, 10)
-    if (!sku) return setError('Vui lòng chọn SKU.')
-    if (!Number.isInteger(quantity) || quantity === 0) return setError('Số lượng điều chỉnh phải là số nguyên khác 0.')
-    if (selectedVariant && selectedVariant.stock + quantity < 0) return setError('Tồn kho sau điều chỉnh không thể âm.')
-    if (!note.trim()) return setError('Vui lòng nhập ghi chú để lưu vết điều chỉnh.')
+    if (!sku) nextErrors.sku = 'Vui lòng chọn SKU.'
+    if (!delta.trim()) nextErrors.delta = 'Vui lòng nhập số lượng điều chỉnh.'
+    else if (!Number.isInteger(quantity) || quantity === 0) nextErrors.delta = 'Số lượng điều chỉnh phải là số nguyên khác 0.'
+    if (selectedVariant && selectedVariant.stock + quantity < 0) nextErrors.delta = 'Tồn kho sau điều chỉnh không thể âm.'
+    if (!note.trim()) nextErrors.note = 'Vui lòng nhập ghi chú để lưu vết điều chỉnh.'
+    setFieldErrors(nextErrors)
+    if (Object.keys(nextErrors).length) return
 
     setPendingQuantity(quantity)
+  }
+
+  function updateField(key, value) {
+    if (key === 'sku') setSku(value)
+    if (key === 'delta') setDelta(value)
+    if (key === 'note') setNote(value)
+    setFieldErrors(p => ({ ...p, [key]: '' }))
   }
 
   async function confirmAdjust() {
@@ -81,26 +94,29 @@ export default function StockAdjustModal({ variants, onClose, onSuccess, onError
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6">
+        <form onSubmit={handleSubmit} noValidate className="p-6">
           <div className="grid gap-5 lg:grid-cols-[1fr_220px]">
             <div className="space-y-4">
               <label>
                 <span className="mb-1.5 block text-xs font-black text-gray-500">SKU cần điều chỉnh</span>
-                <select value={sku} onChange={event => setSku(event.target.value)} className="form-field" required>
+                <select value={sku} onChange={event => updateField('sku', event.target.value)} className="form-field" aria-invalid={Boolean(fieldErrors.sku)} aria-describedby="stock-adjust-sku-error" data-testid="stock-adjust-sku-input">
                   {variants?.map(variant => (
                     <option key={variant.sku} value={variant.sku}>{variant.sku} · {variant.productName} · tồn {variant.stock}</option>
                   ))}
                 </select>
+                <FieldError id="stock-adjust-sku">{fieldErrors.sku}</FieldError>
               </label>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <label>
                   <span className="mb-1.5 block text-xs font-black text-gray-500">Số lượng điều chỉnh</span>
-                  <input type="number" value={delta} onChange={event => setDelta(event.target.value)} placeholder="VD: 10 hoặc -5" className="form-field" required />
+                  <input type="number" value={delta} onChange={event => updateField('delta', event.target.value)} placeholder="VD: 10 hoặc -5" className="form-field" aria-invalid={Boolean(fieldErrors.delta)} aria-describedby="stock-adjust-delta-error" data-testid="stock-adjust-delta-input" />
+                  <FieldError id="stock-adjust-delta">{fieldErrors.delta}</FieldError>
                 </label>
                 <label>
                   <span className="mb-1.5 block text-xs font-black text-gray-500">Ghi chú</span>
-                  <input type="text" value={note} onChange={event => setNote(event.target.value)} placeholder="VD: Nhập thêm hàng, kiểm kê lệch..." className="form-field" required />
+                  <input type="text" value={note} onChange={event => updateField('note', event.target.value)} placeholder="VD: Nhập thêm hàng, kiểm kê lệch..." className="form-field" aria-invalid={Boolean(fieldErrors.note)} aria-describedby="stock-adjust-note-error" data-testid="stock-adjust-note-input" />
+                  <FieldError id="stock-adjust-note">{fieldErrors.note}</FieldError>
                 </label>
               </div>
 

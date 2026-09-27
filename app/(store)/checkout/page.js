@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useCart } from '@/contexts/CartContext'
 import { formatVND } from '@/lib/utils'
 import Toast from '@/components/store/Toast'
+import FieldError from '@/components/FieldError'
 
 const PROVINCES = ['Hà Nội', 'TP. Hồ Chí Minh', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ', 'Khác']
 const SHIPPING_OPTIONS = [
@@ -96,6 +97,7 @@ export default function CheckoutPage() {
   const [promoMsg, setPromoMsg] = useState('')
   const [note, setNote] = useState('')
   const [toast, setToast] = useState(null)
+  const [fieldErrors, setFieldErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => { if (items.length === 0 && !submitting) router.replace('/cart') }, [items, router, submitting])
@@ -112,8 +114,20 @@ export default function CheckoutPage() {
 
   function handlePaymentChange(value) {
     setPayment(value)
+    setFieldErrors(p => ({ ...p, bankConfirmed: '', cardNumber: '', cardName: '', cardExpiry: '', cardCvv: '' }))
     setBankConfirmed(false)
     if (value !== 'VISA') setCard({ number: '', name: '', expiry: '', cvv: '' })
+  }
+
+  function updateContactField(key, value) {
+    setContact(p => ({ ...p, [key]: value }))
+    setFieldErrors(p => ({ ...p, [key]: '' }))
+  }
+
+  function updateCardField(key, value) {
+    setCard(p => ({ ...p, [key]: value }))
+    const errorKey = key === 'number' ? 'cardNumber' : key === 'name' ? 'cardName' : key === 'expiry' ? 'cardExpiry' : 'cardCvv'
+    setFieldErrors(p => ({ ...p, [errorKey]: '' }))
   }
 
   function formatCardNumber(value) {
@@ -144,6 +158,30 @@ export default function CheckoutPage() {
 
   async function handleSubmit(e) {
     e.preventDefault()
+    const nextErrors = {}
+    const contactValidationRules = [
+      ['fullName', 'Vui lòng nhập họ tên người nhận.'],
+      ['phone', 'Vui lòng nhập số điện thoại.'],
+      ['province', 'Vui lòng nhập tỉnh/thành.'],
+      ['district', 'Vui lòng nhập quận/huyện.'],
+      ['ward', 'Vui lòng nhập phường/xã.'],
+      ['address', 'Vui lòng nhập địa chỉ nhận hàng.'],
+    ]
+    contactValidationRules.forEach(([key, message]) => {
+      if (!contact[key]?.trim()) nextErrors[key] = message
+    })
+    if (payment === 'BANK' && !bankConfirmed) nextErrors.bankConfirmed = 'Vui lòng xác nhận đã quét QR chuyển khoản giả lập.'
+    if (payment === 'VISA') {
+      if (cardNumberDigits.length < 12 || cardNumberDigits.length > 19) nextErrors.cardNumber = 'Số thẻ cần từ 12-19 chữ số.'
+      if (card.name.trim().length < 2) nextErrors.cardName = 'Vui lòng nhập tên trên thẻ.'
+      if (!/^\d{2}\/\d{2}$/.test(card.expiry)) nextErrors.cardExpiry = 'Hạn thẻ cần đúng định dạng MM/YY.'
+      if (cardCvvDigits.length < 3 || cardCvvDigits.length > 4) nextErrors.cardCvv = 'CVV cần 3-4 chữ số.'
+    }
+    setFieldErrors(nextErrors)
+    if (Object.keys(nextErrors).length) {
+      setToast({ message: 'Vui lòng kiểm tra các trường màu đỏ trước khi đặt hàng.', type: 'error' })
+      return
+    }
     if (!isPaymentReady) {
       const message = payment === 'BANK'
         ? 'Vui lòng xác nhận đã quét QR chuyển khoản giả lập.'
@@ -180,7 +218,7 @@ export default function CheckoutPage() {
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <span className="section-kicker">Secure checkout</span>
       <h1 className="section-title mb-8 mt-1.5">Thanh toán</h1>
-      <form onSubmit={handleSubmit} className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_390px] lg:gap-8">
+      <form onSubmit={handleSubmit} noValidate className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_390px] lg:gap-8">
         <div className="space-y-6">
           {/* Contact */}
           <div className="surface-card p-5 sm:p-7">
@@ -189,15 +227,17 @@ export default function CheckoutPage() {
               <div><h2 className="font-bold text-sole-dark">Thông tin giao hàng</h2><p className="text-xs text-gray-400">Điền thông tin người nhận chính xác</p></div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              {[['fullName','Họ tên *','text',true],['phone','Số điện thoại *','tel',true],['email','Email','email',false],['province','Tỉnh/Thành *','text',true],['district','Quận/Huyện *','text',true],['ward','Phường/Xã *','text',true]].map(([key,label,type,req]) => (
+              {[['fullName','Họ tên *','text'],['phone','Số điện thoại *','tel'],['email','Email','email'],['province','Tỉnh/Thành *','text'],['district','Quận/Huyện *','text'],['ward','Phường/Xã *','text']].map(([key,label,type]) => (
                 <div key={key} className={key === 'fullName' || key === 'address' ? 'sm:col-span-2' : ''}>
                   <label className="block text-sm text-gray-600 mb-1">{label}</label>
-                  <input type={type} required={req} value={contact[key]} onChange={e => setContact(p => ({...p,[key]:e.target.value}))} className="form-field" />
+                  <input type={type} value={contact[key]} onChange={e => updateContactField(key, e.target.value)} className="form-field" aria-invalid={Boolean(fieldErrors[key])} aria-describedby={`checkout-${key}-error`} data-testid={`checkout-${key}-input`} />
+                  <FieldError id={`checkout-${key}`}>{fieldErrors[key]}</FieldError>
                 </div>
               ))}
               <div className="sm:col-span-2">
                 <label className="block text-sm text-gray-600 mb-1">Địa chỉ *</label>
-                <input required value={contact.address} onChange={e => setContact(p => ({...p,address:e.target.value}))} className="form-field" placeholder="Số nhà, tên đường..." />
+                <input value={contact.address} onChange={e => updateContactField('address', e.target.value)} className="form-field" placeholder="Số nhà, tên đường..." aria-invalid={Boolean(fieldErrors.address)} aria-describedby="checkout-address-error" data-testid="checkout-address-input" />
+                <FieldError id="checkout-address">{fieldErrors.address}</FieldError>
               </div>
               <div className="sm:col-span-2">
                 <label className="block text-sm text-gray-600 mb-1">Ghi chú</label>
@@ -268,9 +308,10 @@ export default function CheckoutPage() {
                         Nội dung: <span className="font-black text-sole-dark">{bankContent}</span>
                       </div>
                     </div>
-                    <button type="button" onClick={() => setBankConfirmed(true)} className={`rounded-2xl px-4 py-3 text-sm font-black transition ${bankConfirmed ? 'bg-emerald-500 text-white shadow-[0_14px_30px_rgba(16,185,129,.24)]' : 'bg-sky-600 text-white hover:-translate-y-0.5 hover:bg-sky-700'}`}>
+                    <button type="button" onClick={() => { setBankConfirmed(true); setFieldErrors(p => ({ ...p, bankConfirmed: '' })) }} className={`rounded-2xl px-4 py-3 text-sm font-black transition ${bankConfirmed ? 'bg-emerald-500 text-white shadow-[0_14px_30px_rgba(16,185,129,.24)]' : 'bg-sky-600 text-white hover:-translate-y-0.5 hover:bg-sky-700'}`}>
                       {bankConfirmed ? 'Đã xác nhận chuyển khoản giả lập' : 'Tôi đã quét QR và chuyển khoản'}
                     </button>
+                    <FieldError id="checkout-bankConfirmed">{fieldErrors.bankConfirmed}</FieldError>
                   </div>
                 </div>
               )}
@@ -292,19 +333,23 @@ export default function CheckoutPage() {
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="sm:col-span-2">
                       <label className="mb-1 block text-sm font-bold text-sole-dark">Số thẻ Visa giả lập</label>
-                      <input inputMode="numeric" autoComplete="cc-number" value={card.number} onChange={e => setCard(p => ({ ...p, number: formatCardNumber(e.target.value) }))} className="form-field" placeholder="4242 4242 4242 4242" />
+                      <input inputMode="numeric" autoComplete="cc-number" value={card.number} onChange={e => updateCardField('number', formatCardNumber(e.target.value))} className="form-field" placeholder="4242 4242 4242 4242" aria-invalid={Boolean(fieldErrors.cardNumber)} aria-describedby="checkout-cardNumber-error" data-testid="checkout-cardNumber-input" />
+                      <FieldError id="checkout-cardNumber">{fieldErrors.cardNumber}</FieldError>
                     </div>
                     <div className="sm:col-span-2">
                       <label className="mb-1 block text-sm font-bold text-sole-dark">Tên trên thẻ</label>
-                      <input autoComplete="cc-name" value={card.name} onChange={e => setCard(p => ({ ...p, name: e.target.value.toUpperCase() }))} className="form-field" placeholder="NGUYEN VAN A" />
+                      <input autoComplete="cc-name" value={card.name} onChange={e => updateCardField('name', e.target.value.toUpperCase())} className="form-field" placeholder="NGUYEN VAN A" aria-invalid={Boolean(fieldErrors.cardName)} aria-describedby="checkout-cardName-error" data-testid="checkout-cardName-input" />
+                      <FieldError id="checkout-cardName">{fieldErrors.cardName}</FieldError>
                     </div>
                     <div>
                       <label className="mb-1 block text-sm font-bold text-sole-dark">Hết hạn</label>
-                      <input inputMode="numeric" autoComplete="cc-exp" value={card.expiry} onChange={e => setCard(p => ({ ...p, expiry: formatExpiry(e.target.value) }))} className="form-field" placeholder="MM/YY" />
+                      <input inputMode="numeric" autoComplete="cc-exp" value={card.expiry} onChange={e => updateCardField('expiry', formatExpiry(e.target.value))} className="form-field" placeholder="MM/YY" aria-invalid={Boolean(fieldErrors.cardExpiry)} aria-describedby="checkout-cardExpiry-error" data-testid="checkout-cardExpiry-input" />
+                      <FieldError id="checkout-cardExpiry">{fieldErrors.cardExpiry}</FieldError>
                     </div>
                     <div>
                       <label className="mb-1 block text-sm font-bold text-sole-dark">CVV</label>
-                      <input inputMode="numeric" autoComplete="cc-csc" value={card.cvv} onChange={e => setCard(p => ({ ...p, cvv: e.target.value.replace(/\D/g, '').slice(0, 4) }))} className="form-field" placeholder="123" />
+                      <input inputMode="numeric" autoComplete="cc-csc" value={card.cvv} onChange={e => updateCardField('cvv', e.target.value.replace(/\D/g, '').slice(0, 4))} className="form-field" placeholder="123" aria-invalid={Boolean(fieldErrors.cardCvv)} aria-describedby="checkout-cardCvv-error" data-testid="checkout-cardCvv-input" />
+                      <FieldError id="checkout-cardCvv">{fieldErrors.cardCvv}</FieldError>
                     </div>
                     <p className={`sm:col-span-2 rounded-2xl px-4 py-3 text-xs leading-5 ${isCardValid ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'bg-white text-gray-500 ring-1 ring-blue-100'}`}>
                       {isCardValid ? 'Thẻ giả lập hợp lệ. Khi đặt hàng, đơn sẽ được đánh dấu đã thanh toán và backend vẫn trừ tồn kho.' : 'Bạn có thể nhập số bất kỳ từ 12-19 chữ số, tên, hạn MM/YY và CVV 3-4 số để mô phỏng thanh toán.'}
