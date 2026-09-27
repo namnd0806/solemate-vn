@@ -97,21 +97,21 @@ function DashboardMetric({ label, value, hint, tone, path, trend }) {
     blue: 'bg-sky-200',
   }
   return (
-    <div className={`group relative overflow-hidden rounded-[26px] border border-gray-200 bg-gradient-to-br ${glow[tone]} p-5 shadow-[0_18px_50px_rgba(20,23,28,.07)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_26px_70px_rgba(20,23,28,.12)]`}>
+    <div className={`group relative overflow-hidden rounded-[24px] border border-gray-200 bg-gradient-to-br ${glow[tone]} p-4 shadow-[0_18px_50px_rgba(20,23,28,.07)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_26px_70px_rgba(20,23,28,.12)] sm:rounded-[26px] sm:p-5`}>
       <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/70 blur-2xl" />
-      <div className="relative flex items-center gap-5">
-        <span className={`grid size-14 shrink-0 place-items-center rounded-full shadow-inner ${iconTone[tone]}`}>
+      <div className="relative flex items-center gap-3 sm:gap-5">
+        <span className={`grid size-11 shrink-0 place-items-center rounded-full shadow-inner sm:size-14 ${iconTone[tone]}`}>
           <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="2"><path d={path} /></svg>
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
-            <p className="whitespace-nowrap text-2xl font-black leading-none tracking-tight text-sole-dark 2xl:text-3xl">{value}</p>
-            <span className={`rounded-full px-3 py-1 text-xs font-black shadow-sm ${iconTone[tone]}`}>{trend}</span>
+            <p className="min-w-0 truncate whitespace-nowrap text-xl font-black leading-none tracking-tight text-sole-dark sm:text-2xl 2xl:text-3xl">{value}</p>
+            <span className={`hidden rounded-full px-3 py-1 text-xs font-black shadow-sm sm:inline-flex ${iconTone[tone]}`}>{trend}</span>
           </div>
           <p className="mt-3 text-base font-black text-sole-dark">{label}</p>
           <p className="mt-1 text-xs font-bold text-gray-400">{hint}</p>
         </div>
-        <div className="hidden items-end gap-1 self-end sm:flex">
+        <div className="hidden items-end gap-1 self-end 2xl:flex">
           {[16, 28, 20, 38].map((height, index) => <span key={index} className={`w-2 rounded-full ${barTone[tone]}`} style={{ height }} />)}
         </div>
       </div>
@@ -130,10 +130,10 @@ export default async function DashboardPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
         <p className="text-xs font-black uppercase tracking-[.24em] text-primary">Admin workspace</p>
-        <h1 className="mt-1 text-4xl font-black tracking-[-.04em] text-sole-dark">Dashboard</h1>
+        <h1 className="mt-1 text-3xl font-black tracking-[-.04em] text-sole-dark sm:text-4xl">Dashboard</h1>
         <p className="mt-2 text-sm text-gray-400">Tổng quan vận hành, doanh thu đã giao và các điểm cần xử lý nhanh.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2">
           <Link href="/admin/orders" className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-5 text-sm font-black text-gray-600 shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:text-primary hover:shadow-[0_12px_28px_rgba(20,23,28,.09)]">
             Xử lý đơn
           </Link>
@@ -152,7 +152,7 @@ export default async function DashboardPage() {
         ].map(card => <DashboardMetric key={card.label} {...card} />)}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,.8fr)]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,.8fr)]">
         <section className="relative overflow-hidden rounded-[28px] border border-gray-200 bg-white p-5 shadow-[0_18px_55px_rgba(20,23,28,.07)]">
           <div className="absolute right-8 top-0 h-24 w-80 rounded-full bg-primary/10 blur-3xl" />
           <div className="relative mb-5 flex flex-wrap items-start justify-between gap-3">

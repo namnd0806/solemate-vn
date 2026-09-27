@@ -22,13 +22,13 @@ export default async function AdminLayout({ children }) {
 
   return (
     <div className="admin-shell min-h-screen bg-[#f7f8f9] transition-colors">
-      <aside className="admin-sidebar fixed inset-y-0 left-0 z-50 w-[86px] border-r border-white/10 bg-[#111315] md:w-[276px]">
+      <aside className="admin-sidebar fixed inset-y-0 left-0 z-50 w-[64px] border-r border-white/10 bg-[#111315] sm:w-[86px] md:w-[276px]">
         <AdminNav />
       </aside>
-      <div className="min-h-screen pl-[86px] md:pl-[276px]">
+      <div className="min-h-screen pl-[64px] sm:pl-[86px] md:pl-[276px]">
         <AdminHeader admin={admin} />
         <div className="flex">
-          <main className="admin-main min-w-0 flex-1 p-3 transition-colors sm:p-5 lg:p-8">{children}</main>
+          <main className="admin-main min-w-0 flex-1 p-2 transition-colors sm:p-5 lg:p-8">{children}</main>
         </div>
       </div>
     </div>

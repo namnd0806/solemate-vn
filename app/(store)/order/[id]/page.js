@@ -160,12 +160,12 @@ function OrderDetailContent() {
         <h2 className="mb-5 font-bold text-sole-dark">Sản phẩm trong đơn</h2>
         <div className="divide-y divide-gray-100">
           {order.order_items?.map(item => (
-            <div key={item.id} className="flex justify-between gap-4 py-4 first:pt-0 last:pb-0 text-sm">
-              <div className="flex gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-gray-100 text-gray-500"><BoxIcon className="size-5" /></span><div>
+            <div key={item.id} className="flex flex-wrap justify-between gap-4 py-4 text-sm first:pt-0 last:pb-0">
+              <div className="flex min-w-0 gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-gray-100 text-gray-500"><BoxIcon className="size-5" /></span><div className="min-w-0">
                 <p className="font-medium text-sole-dark">{item.name}</p>
                 <p className="text-gray-400 text-xs">{item.brand} · {item.color} · Size {item.size} · x{item.qty}</p>
               </div></div>
-              <p className="font-semibold text-primary whitespace-nowrap ml-4">{formatVND(item.line_total)}</p>
+              <p className="ml-auto font-semibold text-primary">{formatVND(item.line_total)}</p>
             </div>
           ))}
         </div>

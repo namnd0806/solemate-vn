@@ -65,9 +65,9 @@ export default function TrackOrderPage() {
               </div>
               <div className="space-y-3 text-sm">
                 {order.order_items?.map(i => (
-                  <div key={i.id} className="flex justify-between gap-4">
-                    <span className="text-gray-600"><strong className="block text-sole-dark">{i.name}</strong><span className="text-xs">{i.color} · Size {i.size} × {i.qty}</span></span>
-                    <span className="whitespace-nowrap font-semibold">{formatVND(i.line_total)}</span>
+                  <div key={i.id} className="flex flex-wrap justify-between gap-3">
+                    <span className="min-w-0 text-gray-600"><strong className="block text-sole-dark">{i.name}</strong><span className="text-xs">{i.color} · Size {i.size} × {i.qty}</span></span>
+                    <span className="ml-auto font-semibold text-primary">{formatVND(i.line_total)}</span>
                   </div>
                 ))}
                 <div className="flex justify-between border-t pt-4 font-bold"><span>Tổng cộng</span><span className="text-lg text-primary">{formatVND(order.total)}</span></div>

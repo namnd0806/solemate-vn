@@ -50,19 +50,19 @@ export default function AdminHeader({ admin }) {
   const dateText = now ? now.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' }) : ''
 
   return (
-    <header className="admin-topbar sticky top-0 z-40 flex min-h-[72px] items-center justify-between gap-3 border-b border-gray-200/80 bg-white/86 px-3 shadow-[0_10px_34px_rgba(20,23,28,.055)] backdrop-blur-xl transition-colors sm:px-6">
+    <header className="admin-topbar sticky top-0 z-40 flex min-h-[64px] items-center justify-between gap-2 border-b border-gray-200/80 bg-white/86 px-2 shadow-[0_10px_34px_rgba(20,23,28,.055)] backdrop-blur-xl transition-colors sm:min-h-[72px] sm:gap-3 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[.2em] text-primary">Admin workspace</p>
-            <div className="mt-1 flex min-w-0 items-center gap-3">
-              <h1 className="truncate text-xl font-black tracking-tight text-sole-dark sm:text-2xl">{title}</h1>
+            <p className="text-[9px] font-black uppercase tracking-[.16em] text-primary sm:text-[10px] sm:tracking-[.2em]">Admin workspace</p>
+            <div className="mt-0.5 flex min-w-0 items-center gap-3 sm:mt-1">
+              <h1 className="truncate text-lg font-black tracking-tight text-sole-dark sm:text-2xl">{title}</h1>
               <span className="hidden rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-black text-emerald-700 md:inline-flex">LIVE</span>
             </div>
             <p className="mt-0.5 hidden text-xs text-gray-400 sm:block">{subtitle}</p>
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
           <div className="hidden items-center gap-3 rounded-2xl border border-gray-200 bg-[#f7f8f9] px-4 py-2 lg:flex">
             <span className="grid size-9 place-items-center rounded-xl bg-white text-primary shadow-sm">
               <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="8" /><path d="M12 8v5l3 2" /></svg>
@@ -73,7 +73,7 @@ export default function AdminHeader({ admin }) {
             </span>
           </div>
 
-          <button type="button" onClick={toggleTheme} className="grid size-11 place-items-center rounded-2xl border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:text-primary" aria-label="Đổi giao diện sáng tối">
+          <button type="button" onClick={toggleTheme} className="grid size-10 place-items-center rounded-2xl border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:text-primary sm:size-11" aria-label="Đổi giao diện sáng tối">
             {darkMode ? (
               <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4 12H2m20 0h-2M5 5l1.4 1.4M17.6 17.6 19 19M19 5l-1.4 1.4M6.4 17.6 5 19" /></svg>
             ) : (
@@ -86,7 +86,7 @@ export default function AdminHeader({ admin }) {
             <span className="max-w-[160px] truncate text-xs font-bold text-gray-500">{admin?.email || 'Admin'}</span>
           </div>
 
-          <button onClick={handleLogout} className="grid size-11 place-items-center rounded-2xl border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:text-primary sm:w-auto sm:px-4 sm:text-xs sm:font-black" aria-label="Đăng xuất">
+          <button onClick={handleLogout} className="grid size-10 place-items-center rounded-2xl border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:text-primary sm:size-11 sm:w-auto sm:px-4 sm:text-xs sm:font-black" aria-label="Đăng xuất">
             <svg viewBox="0 0 24 24" className="size-5 sm:hidden" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M10 17l5-5-5-5" /><path d="M15 12H3" /><path d="M12 4h7v16h-7" /></svg>
             <span className="hidden sm:inline">Đăng xuất</span>
           </button>

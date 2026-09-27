@@ -42,7 +42,7 @@ export default function CartPage() {
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8">
         <div className="space-y-3">
           {items.map(item => (
-            <article key={item.sku} className="surface-card grid grid-cols-[92px_minmax(0,1fr)] gap-4 p-3.5 transition duration-300 hover:border-primary/20 hover:shadow-md sm:grid-cols-[120px_minmax(0,1fr)_auto] sm:p-4">
+            <article key={item.sku} className="surface-card grid grid-cols-[82px_minmax(0,1fr)] gap-3 p-3 transition duration-300 hover:border-primary/20 hover:shadow-md sm:grid-cols-[120px_minmax(0,1fr)_auto] sm:gap-4 sm:p-4">
               <Link href={`/product/${item.slug}`} className="relative aspect-square overflow-hidden rounded-2xl bg-gray-100">
                 {item.image_url ? <Image src={item.image_url} alt={item.name} fill sizes="120px" className="object-cover transition duration-500 hover:scale-105" /> : <ShoeSvg className="h-full w-full p-2" color="#e8642a" brand={item.brand} />}
               </Link>
@@ -73,7 +73,7 @@ export default function CartPage() {
             <div className="flex justify-between text-sm"><span className="text-gray-500">Tạm tính</span><span className="font-bold">{formatVND(total)}</span></div>
             <div className="flex justify-between text-sm"><span className="text-gray-500">Vận chuyển</span><span className="font-bold text-emerald-600">{total >= 499000 ? 'Miễn phí' : 'Tính khi thanh toán'}</span></div>
             <div className="border-t border-dashed border-gray-200 pt-4">
-              <div className="flex items-end justify-between"><span className="font-bold">Tổng cộng</span><span className="text-2xl font-black text-primary">{formatVND(total)}</span></div>
+              <div className="flex items-end justify-between gap-4"><span className="font-bold">Tổng cộng</span><span className="text-xl font-black text-primary sm:text-2xl">{formatVND(total)}</span></div>
               <p className="mt-1 text-right text-[10px] text-gray-400">Đã bao gồm VAT nếu có</p>
             </div>
             <Link href="/checkout" className="btn-primary w-full text-sm">Tiến hành thanh toán</Link>

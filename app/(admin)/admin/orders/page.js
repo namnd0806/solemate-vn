@@ -428,16 +428,16 @@ export default function AdminOrdersPage() {
 
             <div className="max-h-[calc(100vh-230px)] space-y-4 overflow-y-auto p-4">
               <InfoBlock title="Thông tin khách hàng" icon="♙" tone="orange">
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="grid gap-3 text-sm sm:grid-cols-2">
                   <div><p className="text-xs font-bold text-gray-400">Tên khách hàng</p><p className="mt-1 font-black text-sole-dark">{selected.contact?.fullName || 'Khách'}</p></div>
                   <div><p className="text-xs font-bold text-gray-400">Số điện thoại</p><p className="mt-1 font-black text-sole-dark">{selected.contact?.phone || '-'}</p></div>
-                  <div className="col-span-2"><p className="text-xs font-bold text-gray-400">Địa chỉ</p><p className="mt-1 leading-6 text-gray-600">{selected.contact?.address}, {selected.contact?.ward}, {selected.contact?.district}, {selected.contact?.province}</p></div>
+                  <div className="sm:col-span-2"><p className="text-xs font-bold text-gray-400">Địa chỉ</p><p className="mt-1 leading-6 text-gray-600">{selected.contact?.address}, {selected.contact?.ward}, {selected.contact?.district}, {selected.contact?.province}</p></div>
                 </div>
                 {selected.note && <div className="mt-3 rounded-xl bg-orange-50 px-3 py-2 text-sm font-semibold text-gray-600">Ghi chú khách: {selected.note}</div>}
               </InfoBlock>
 
               <InfoBlock title="Thông tin thanh toán" icon="▣" tone="violet">
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="grid gap-3 text-sm sm:grid-cols-2">
                   <div><p className="text-xs font-bold text-gray-400">Phương thức</p><p className="mt-1 font-black text-sole-dark">{PAYMENT_METHODS[selected.payment_method]}</p></div>
                   <div><p className="text-xs font-bold text-gray-400">Trạng thái thanh toán</p><div className="mt-1"><PaymentBadge order={selected} /></div></div>
                   <div><p className="text-xs font-bold text-gray-400">Mã giao dịch</p><p className="mt-1 font-black text-sole-dark">{selected.payment_transaction || selected.bank_transfer_code || 'SMB123456789'}</p></div>
@@ -450,7 +450,7 @@ export default function AdminOrdersPage() {
                   <div className="flex justify-between gap-4 text-gray-600"><span>Tạm tính</span><span className="font-bold text-sole-dark">{formatVND(selected.subtotal)}</span></div>
                   <div className="flex justify-between gap-4 text-gray-600"><span>Phí vận chuyển</span><span className="font-bold text-sole-dark">{selected.shipping_fee === 0 ? 'Miễn phí' : formatVND(selected.shipping_fee)}</span></div>
                   <div className="flex justify-between gap-4 text-gray-600"><span>Giảm giá</span><span className="font-bold text-sole-dark">{selected.discount > 0 ? `-${formatVND(selected.discount)}` : '0 đ'}</span></div>
-                  <div className="mt-3 flex justify-between rounded-xl bg-orange-50 px-3 py-3 text-base font-black"><span>Tổng thanh toán</span><span className="text-primary">{formatVND(selected.total)}</span></div>
+                  <div className="mt-3 flex flex-wrap justify-between gap-2 rounded-xl bg-orange-50 px-3 py-3 text-base font-black"><span>Tổng thanh toán</span><span className="text-primary">{formatVND(selected.total)}</span></div>
                 </div>
               </InfoBlock>
 

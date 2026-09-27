@@ -179,10 +179,10 @@ export default function AdminInventoryPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-black uppercase tracking-[.24em] text-primary">Admin workspace</p>
-          <h1 className="mt-1 text-4xl font-black tracking-[-.04em] text-sole-dark">Kho hàng</h1>
+          <h1 className="mt-1 text-3xl font-black tracking-[-.04em] text-sole-dark sm:text-4xl">Kho hàng</h1>
           <p className="mt-2 text-sm text-gray-400">Theo dõi tồn kho theo SKU, cảnh báo tồn thấp và lịch sử nhập xuất.</p>
         </div>
-        <button onClick={() => setModalOpen(true)} className="btn-primary text-sm">
+        <button onClick={() => setModalOpen(true)} className="btn-primary w-full text-sm sm:w-auto">
           <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2.3"><path d="M12 5v14M5 12h14" /></svg>
           Điều chỉnh kho
         </button>
@@ -218,13 +218,13 @@ export default function AdminInventoryPage() {
           <div className="relative flex flex-col gap-3 xl:flex-row xl:items-center">
             <div className="relative flex-1">
               <svg viewBox="0 0 24 24" className="absolute left-5 top-1/2 size-5 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
-              <input value={search} onChange={event => { setSearch(event.target.value); setSkuPage(1) }} placeholder="Tìm SKU, sản phẩm, thương hiệu, màu, size..." className="h-14 w-full rounded-2xl border border-gray-200 bg-white pl-14 pr-16 text-sm font-bold text-sole-dark shadow-inner outline-none transition focus:border-primary focus:shadow-[0_0_0_4px_rgba(242,106,46,.1)]" />
+              <input value={search} onChange={event => { setSearch(event.target.value); setSkuPage(1) }} placeholder="Tìm SKU, sản phẩm, thương hiệu, màu, size..." className="h-12 w-full rounded-2xl border border-gray-200 bg-white pl-12 pr-4 text-sm font-bold text-sole-dark shadow-inner outline-none transition focus:border-primary focus:shadow-[0_0_0_4px_rgba(242,106,46,.1)] sm:h-14 sm:pl-14 sm:pr-16" />
               <span className="absolute right-5 top-1/2 hidden -translate-y-1/2 rounded-xl bg-gray-100 px-2.5 py-1 text-xs font-black text-gray-400 sm:block">⌘ K</span>
             </div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 xl:flex">
-              <select value={stockFilter} onChange={event => { setStockFilter(event.target.value); setSkuPage(1) }} className="h-14 rounded-2xl border border-gray-200 bg-white px-4 text-xs font-black text-gray-600 outline-none transition hover:border-primary/40 focus:border-primary">{STOCK_FILTERS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
-              <select value={statusFilter} onChange={event => { setStatusFilter(event.target.value); setSkuPage(1) }} className="h-14 rounded-2xl border border-gray-200 bg-white px-4 text-xs font-black text-gray-600 outline-none transition hover:border-primary/40 focus:border-primary">{STATUS_FILTERS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
-              <select value={sort} onChange={event => { setSort(event.target.value); setSkuPage(1) }} className="h-14 rounded-2xl border border-gray-200 bg-white px-4 text-xs font-black text-gray-600 outline-none transition hover:border-primary/40 focus:border-primary">{SORTS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+              <select value={stockFilter} onChange={event => { setStockFilter(event.target.value); setSkuPage(1) }} className="h-12 rounded-2xl border border-gray-200 bg-white px-4 text-xs font-black text-gray-600 outline-none transition hover:border-primary/40 focus:border-primary sm:h-14">{STOCK_FILTERS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+              <select value={statusFilter} onChange={event => { setStatusFilter(event.target.value); setSkuPage(1) }} className="h-12 rounded-2xl border border-gray-200 bg-white px-4 text-xs font-black text-gray-600 outline-none transition hover:border-primary/40 focus:border-primary sm:h-14">{STATUS_FILTERS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+              <select value={sort} onChange={event => { setSort(event.target.value); setSkuPage(1) }} className="h-12 rounded-2xl border border-gray-200 bg-white px-4 text-xs font-black text-gray-600 outline-none transition hover:border-primary/40 focus:border-primary sm:h-14">{SORTS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
             </div>
           </div>
           <div className="relative mt-4 flex flex-wrap items-center justify-between gap-3 text-xs">
@@ -240,12 +240,12 @@ export default function AdminInventoryPage() {
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-3">
-              <button type="button" onClick={load} className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-black text-gray-600 shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:text-primary">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+              <button type="button" onClick={load} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-black text-gray-600 shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:text-primary">
                 <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 12a8 8 0 1 1-2.34-5.66" /><path d="M20 4v6h-6" /></svg>
                 Làm mới
               </button>
-              <button type="button" onClick={() => setAdvancedOpen(open => !open)} aria-expanded={advancedOpen} className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-[#ff4f24] px-4 py-2.5 text-sm font-black text-white shadow-[0_12px_26px_rgba(242,106,46,.25)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(242,106,46,.32)]">
+              <button type="button" onClick={() => setAdvancedOpen(open => !open)} aria-expanded={advancedOpen} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-[#ff4f24] px-4 py-2.5 text-sm font-black text-white shadow-[0_12px_26px_rgba(242,106,46,.25)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(242,106,46,.32)]">
                 <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 5h16l-6 7v5l-4 2v-7L4 5Z" /></svg>
                 Lọc nâng cao
                 {activeFilterCount > 0 && <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-black text-primary">{activeFilterCount}</span>}
@@ -355,14 +355,14 @@ export default function AdminInventoryPage() {
           <div className="relative mt-4 flex flex-col gap-3 xl:flex-row xl:items-center">
             <div className="relative flex-1">
               <svg viewBox="0 0 24 24" className="absolute left-5 top-1/2 size-5 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
-              <input value={movementSearch} onChange={event => { setMovementSearch(event.target.value); setMovementPage(1) }} placeholder="Tìm SKU, sản phẩm, người thực hiện, ghi chú..." className="h-14 w-full rounded-2xl border border-gray-200 bg-white pl-14 pr-16 text-sm font-bold text-sole-dark shadow-inner outline-none transition focus:border-primary focus:shadow-[0_0_0_4px_rgba(242,106,46,.1)]" />
+              <input value={movementSearch} onChange={event => { setMovementSearch(event.target.value); setMovementPage(1) }} placeholder="Tìm SKU, sản phẩm, người thực hiện, ghi chú..." className="h-12 w-full rounded-2xl border border-gray-200 bg-white pl-12 pr-4 text-sm font-bold text-sole-dark shadow-inner outline-none transition focus:border-primary focus:shadow-[0_0_0_4px_rgba(242,106,46,.1)] sm:h-14 sm:pl-14 sm:pr-16" />
               <span className="absolute right-5 top-1/2 hidden -translate-y-1/2 rounded-xl bg-gray-100 px-2.5 py-1 text-xs font-black text-gray-400 sm:block">⌘ K</span>
             </div>
-            <select value={movementType} onChange={event => { setMovementType(event.target.value); setMovementPage(1) }} className="h-14 rounded-2xl border border-gray-200 bg-white px-4 text-xs font-black text-gray-600 outline-none transition hover:border-primary/40 focus:border-primary">
+            <select value={movementType} onChange={event => { setMovementType(event.target.value); setMovementPage(1) }} className="h-12 rounded-2xl border border-gray-200 bg-white px-4 text-xs font-black text-gray-600 outline-none transition hover:border-primary/40 focus:border-primary sm:h-14">
               <option value="ALL">Mọi loại biến động</option>
               {Object.entries(MOVEMENT_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
-            <button type="button" onClick={load} className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-5 text-sm font-black text-gray-600 shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:text-primary">
+            <button type="button" onClick={load} className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-5 text-sm font-black text-gray-600 shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:text-primary sm:h-14">
               <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 12a8 8 0 1 1-2.34-5.66" /><path d="M20 4v6h-6" /></svg>
               Làm mới
             </button>

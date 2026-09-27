@@ -166,14 +166,14 @@ export default function AdminPromotionsPage() {
         onConfirm={() => toggleEnabled(toggleTarget)}
       />
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-black uppercase tracking-[.18em] text-primary">Promotion center</p>
           <h1 className="mt-1 text-3xl font-black tracking-tight text-sole-dark">Quản lý khuyến mãi</h1>
           <p className="mt-2 text-sm text-gray-400">{promos.length} mã giảm giá đang được quản lý.</p>
         </div>
         <button onClick={openNew}
-          className="flex items-center gap-2 bg-primary hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-lg sm:w-auto">
           <span className="text-lg">+</span> Tạo mã mới
         </button>
       </div>
@@ -258,14 +258,14 @@ export default function AdminPromotionsPage() {
 
       {/* Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-4 backdrop-blur-sm">
+          <div className="max-h-[calc(100vh-32px)] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl">
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
               <h2 className="text-xl font-bold text-sole-dark">{editing ? 'Chỉnh sửa mã' : 'Tạo mã mới'}</h2>
               <button onClick={() => setShowForm(false)} className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500 transition-colors">✕</button>
             </div>
             <form onSubmit={handleSave} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">Mã code *</label>
                   <input required value={form.code} onChange={e => setForm(p => ({...p, code: e.target.value.toUpperCase()}))}
@@ -279,7 +279,7 @@ export default function AdminPromotionsPage() {
                     <option value="FIXED">Cố định (VND)</option>
                   </select>
                 </div>
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <label className="block text-xs font-medium text-gray-500 mb-1">Tên mã *</label>
                   <input required value={form.name} onChange={e => setForm(p => ({...p, name: e.target.value}))}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
@@ -316,11 +316,11 @@ export default function AdminPromotionsPage() {
                 </div>
               </div>
               {formError && <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl px-4 py-3 text-sm">{formError}</div>}
-              <div className="flex gap-3 justify-end pt-2 border-t border-gray-100">
+              <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-2 sm:flex-row sm:justify-end">
                 <button type="button" onClick={() => setShowForm(false)}
-                  className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors">Huỷ</button>
+                  className="rounded-xl border border-gray-200 px-5 py-2.5 text-sm text-gray-600 transition-colors hover:bg-gray-50">Huỷ</button>
                 <button type="submit" disabled={saving}
-                  className="px-6 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-orange-600 transition-all shadow-md disabled:opacity-50">
+                  className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-orange-600 disabled:opacity-50">
                   {saving ? 'Đang lưu...' : editing ? 'Cập nhật' : 'Tạo mã'}
                 </button>
               </div>

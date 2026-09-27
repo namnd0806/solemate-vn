@@ -190,16 +190,16 @@ export default function CheckoutPage() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               {[['fullName','Họ tên *','text',true],['phone','Số điện thoại *','tel',true],['email','Email','email',false],['province','Tỉnh/Thành *','text',true],['district','Quận/Huyện *','text',true],['ward','Phường/Xã *','text',true]].map(([key,label,type,req]) => (
-                <div key={key} className={key === 'fullName' || key === 'address' ? 'col-span-2' : ''}>
+                <div key={key} className={key === 'fullName' || key === 'address' ? 'sm:col-span-2' : ''}>
                   <label className="block text-sm text-gray-600 mb-1">{label}</label>
                   <input type={type} required={req} value={contact[key]} onChange={e => setContact(p => ({...p,[key]:e.target.value}))} className="form-field" />
                 </div>
               ))}
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <label className="block text-sm text-gray-600 mb-1">Địa chỉ *</label>
                 <input required value={contact.address} onChange={e => setContact(p => ({...p,address:e.target.value}))} className="form-field" placeholder="Số nhà, tên đường..." />
               </div>
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <label className="block text-sm text-gray-600 mb-1">Ghi chú</label>
                 <textarea value={note} onChange={e => setNote(e.target.value)} rows={2} className="form-field min-h-20 resize-none py-3" />
               </div>
@@ -247,7 +247,7 @@ export default function CheckoutPage() {
                 ))}
               </div>
               {payment === 'BANK' && (
-                <div className="grid gap-4 rounded-3xl border border-sky-100 bg-[linear-gradient(135deg,#f0f9ff,#fff)] p-4 sm:grid-cols-[180px,1fr]">
+                <div className="grid gap-4 rounded-3xl border border-sky-100 bg-[linear-gradient(135deg,#f0f9ff,#fff)] p-4 sm:grid-cols-[180px_1fr]">
                   <div className="grid aspect-square place-items-center rounded-3xl bg-white p-4 shadow-[0_18px_55px_rgba(2,132,199,.12)] ring-1 ring-sky-100">
                     <div className="grid size-full grid-cols-5 grid-rows-5 gap-1 rounded-2xl bg-slate-950 p-3">
                       {Array.from({ length: 25 }).map((_, index) => (
@@ -275,7 +275,7 @@ export default function CheckoutPage() {
                 </div>
               )}
               {payment === 'VISA' && (
-                <div className="grid gap-4 rounded-3xl border border-blue-100 bg-[linear-gradient(135deg,#eff6ff,#fff)] p-4 lg:grid-cols-[260px,1fr]">
+                <div className="grid gap-4 rounded-3xl border border-blue-100 bg-[linear-gradient(135deg,#eff6ff,#fff)] p-4 lg:grid-cols-[260px_1fr]">
                   <div className="flex min-h-40 flex-col justify-between rounded-3xl bg-[linear-gradient(135deg,#132c6f,#2563eb)] p-5 text-white shadow-[0_22px_60px_rgba(37,99,235,.22)]">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold uppercase tracking-[.18em] text-white/60">SoleMate Pay</span>

@@ -112,8 +112,8 @@ export default function PDPPage() {
     <div className="bg-[#f7f8f9] py-8 lg:py-12">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <div className="store-container">
-        <nav className="mb-7 flex items-center gap-2 text-xs text-gray-400" aria-label="Đường dẫn">
-          <Link href="/" className="hover:text-primary">Trang chủ</Link><span>/</span><Link href="/products" className="hover:text-primary">Sản phẩm</Link><span>/</span><span className="text-gray-600">{product.name}</span>
+        <nav className="mb-7 flex min-w-0 flex-wrap items-center gap-2 text-xs text-gray-400" aria-label="Đường dẫn">
+          <Link href="/" className="hover:text-primary">Trang chủ</Link><span>/</span><Link href="/products" className="hover:text-primary">Sản phẩm</Link><span>/</span><span className="min-w-0 max-w-full truncate text-gray-600">{product.name}</span>
         </nav>
 
         <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.12fr)_minmax(380px,.88fr)] lg:gap-12">
@@ -129,7 +129,7 @@ export default function PDPPage() {
 
           <div className="rounded-[26px] border border-gray-200 bg-white p-6 shadow-[0_18px_55px_rgba(20,23,28,.07)] sm:p-8 lg:sticky lg:top-24" data-reveal>
             <p className="section-kicker">Authentic footwear</p>
-            <h1 className="mt-3 font-[family-name:var(--font-inter)] text-3xl font-black tracking-[-.04em] text-sole-dark sm:text-[40px] sm:leading-tight">{product.name}</h1>
+            <h1 className="mt-3 font-[family-name:var(--font-inter)] text-2xl font-black tracking-[-.04em] text-sole-dark sm:text-[40px] sm:leading-tight">{product.name}</h1>
             <div className="mt-5 flex items-center gap-3">
               <span className="text-2xl font-black text-[#ff4b24]">{formatVND(displayPrice)}</span>
               {hasSale && <span className="text-sm text-gray-400 line-through">{formatVND(originalPrice)}</span>}
@@ -163,7 +163,7 @@ export default function PDPPage() {
               </div>
             </div>
 
-            <div className="mt-8 grid grid-cols-3 gap-2 border-t border-gray-200 pt-6">
+            <div className="mt-8 grid grid-cols-1 gap-2 border-t border-gray-200 pt-6 sm:grid-cols-3">
               {[[TruckIcon,'Giao nhanh'],[ShieldIcon,'Chính hãng'],[RefreshIcon,'Đổi 7 ngày']].map(([Icon, label]) => <div key={label} className="flex flex-col items-center gap-2 text-center text-[10px] font-bold text-gray-500 sm:flex-row sm:text-left"><Icon className="size-5 text-primary" /><span>{label}</span></div>)}
             </div>
           </div>

@@ -80,19 +80,19 @@ export function AdminMetricCard({ title, value, subtitle, tone = 'orange', trend
   }
   const style = toneMap[tone] || toneMap.orange
   return (
-    <div className={`group relative min-h-[112px] overflow-hidden rounded-[1.35rem] border ${style.border} bg-gradient-to-br ${style.gradient} p-4 shadow-[0_18px_50px_rgba(15,23,42,.06)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_70px_rgba(15,23,42,.11)]`}>
+    <div className={`group relative min-h-[104px] overflow-hidden rounded-[1.35rem] border ${style.border} bg-gradient-to-br ${style.gradient} p-3 shadow-[0_18px_50px_rgba(15,23,42,.06)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_70px_rgba(15,23,42,.11)] sm:min-h-[112px] sm:p-4`}>
       <div className="absolute -right-8 -top-10 size-24 rounded-full bg-white/65 blur-2xl transition group-hover:scale-125" />
-      <div className="relative flex h-full items-center gap-4">
-        <span className={`grid size-12 shrink-0 place-items-center rounded-2xl ${style.icon} shadow-inner transition group-hover:scale-105`}>{children}</span>
+      <div className="relative flex h-full items-center gap-3 sm:gap-4">
+        <span className={`grid size-10 shrink-0 place-items-center rounded-2xl ${style.icon} shadow-inner transition group-hover:scale-105 sm:size-12`}>{children}</span>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <p className="min-w-0 whitespace-nowrap text-2xl font-black leading-none tracking-tight text-sole-dark">{value}</p>
-            {trend && <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black shadow-sm ${style.trend}`}>{trend}</span>}
+            <p className="min-w-0 truncate whitespace-nowrap text-xl font-black leading-none tracking-tight text-sole-dark sm:text-2xl">{value}</p>
+            {trend && <span className={`hidden shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black shadow-sm sm:inline-flex ${style.trend}`}>{trend}</span>}
           </div>
           <p className="mt-2 line-clamp-1 text-sm font-black text-sole-dark">{title}</p>
           <p className="mt-1 line-clamp-1 text-xs font-semibold text-gray-400">{subtitle}</p>
         </div>
-        <div className="hidden h-12 shrink-0 items-end gap-1 self-end sm:flex">
+        <div className="hidden h-12 shrink-0 items-end gap-1 self-end 2xl:flex">
           {[28, 46, 34, 58].map((height, index) => <span key={index} className={`w-2 rounded-full ${style.bar} opacity-70 transition group-hover:opacity-95`} style={{ height: `${height}%` }} />)}
         </div>
       </div>

@@ -94,7 +94,7 @@ export default function Header({ user }) {
               ) : null}
             </Link>
 
-            <div className="pointer-events-none invisible absolute right-0 top-[calc(100%+12px)] w-[360px] translate-y-2 opacity-0 transition duration-200 group-hover/cart:pointer-events-auto group-hover/cart:visible group-hover/cart:translate-y-0 group-hover/cart:opacity-100">
+            <div className="pointer-events-none invisible absolute right-0 top-[calc(100%+12px)] w-[calc(100vw-32px)] translate-y-2 opacity-0 transition duration-200 group-hover/cart:pointer-events-auto group-hover/cart:visible group-hover/cart:translate-y-0 group-hover/cart:opacity-100 sm:w-[360px]">
               <div className="overflow-hidden rounded-[22px] border border-gray-100 bg-white text-sole-dark shadow-[0_28px_80px_rgba(0,0,0,.24)]">
                 <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
                   <div>

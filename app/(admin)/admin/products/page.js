@@ -193,7 +193,7 @@ export default function AdminProductsPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-black uppercase tracking-[.24em] text-primary">Admin workspace</p>
-          <h1 className="mt-1 text-4xl font-black tracking-[-.04em] text-sole-dark">Quản lý sản phẩm</h1>
+          <h1 className="mt-1 text-3xl font-black tracking-[-.04em] text-sole-dark sm:text-4xl">Quản lý sản phẩm</h1>
           <p className="mt-2 text-sm text-gray-400">Theo dõi danh mục, giá bán và hiệu suất sản phẩm tại một nơi.</p>
         </div>
       </div>
@@ -207,16 +207,16 @@ export default function AdminProductsPage() {
         ].map(([label, value, hint, tone, trend, icon]) => <AdminMetricCard key={label} title={label} value={value} subtitle={hint} tone={tone} trend={trend}>{icon}</AdminMetricCard>)}
       </div>
 
-      <section className="relative overflow-hidden rounded-[30px] border border-gray-200 bg-white p-5 shadow-[0_22px_70px_rgba(20,23,28,.08)]">
+      <section className="relative overflow-hidden rounded-[26px] border border-gray-200 bg-white p-4 shadow-[0_22px_70px_rgba(20,23,28,.08)] sm:rounded-[30px] sm:p-5">
         <div className="absolute right-8 top-0 h-24 w-80 rounded-full bg-primary/10 blur-3xl" />
         <div className="relative flex flex-col gap-4">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
             <div className="relative flex-1">
               <svg viewBox="0 0 24 24" className="absolute left-5 top-1/2 size-5 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-              <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} placeholder="Tìm tên, thương hiệu hoặc SKU..." className="h-16 w-full rounded-3xl border border-gray-200 bg-white pl-14 pr-16 text-sm font-bold text-sole-dark shadow-inner outline-none transition focus:border-primary focus:shadow-[0_0_0_4px_rgba(242,106,46,.1)]" />
+              <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} placeholder="Tìm tên, thương hiệu hoặc SKU..." className="h-14 w-full rounded-3xl border border-gray-200 bg-white pl-14 pr-4 text-sm font-bold text-sole-dark shadow-inner outline-none transition focus:border-primary focus:shadow-[0_0_0_4px_rgba(242,106,46,.1)] sm:h-16 sm:pr-16" />
               <span className="absolute right-5 top-1/2 hidden -translate-y-1/2 rounded-xl bg-gray-100 px-2.5 py-1 text-xs font-black text-gray-400 sm:block">⌘ K</span>
             </div>
-            <button onClick={openNew} className="inline-flex h-16 items-center justify-center gap-3 rounded-3xl bg-gradient-to-r from-primary to-[#ff4f24] px-8 text-sm font-black text-white shadow-[0_16px_34px_rgba(242,106,46,.26)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_50px_rgba(242,106,46,.36)]">
+            <button onClick={openNew} className="inline-flex h-14 w-full items-center justify-center gap-3 rounded-3xl bg-gradient-to-r from-primary to-[#ff4f24] px-8 text-sm font-black text-white shadow-[0_16px_34px_rgba(242,106,46,.26)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_50px_rgba(242,106,46,.36)] sm:h-16 xl:w-auto">
               <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.3"><path d="M12 5v14M5 12h14"/></svg>
               Thêm sản phẩm
             </button>
