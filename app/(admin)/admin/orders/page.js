@@ -98,7 +98,7 @@ export default function AdminOrdersPage() {
 
   async function refreshOrders() {
     setLoading(true)
-    const res = await fetch('/api/orders')
+    const res = await fetch('/api/orders?all=1')
     const data = await res.json()
     if (data.ok) {
       const nextOrders = data.data.orders || []
@@ -117,7 +117,7 @@ export default function AdminOrdersPage() {
     let ignore = false
     async function run() {
       setLoading(true)
-      const res = await fetch('/api/orders')
+      const res = await fetch('/api/orders?all=1')
       const data = await res.json()
       if (ignore) return
       if (data.ok) {
@@ -187,6 +187,8 @@ export default function AdminOrdersPage() {
       title: `Chuyển đơn sang ${STATUS_CONFIG[status]?.label}?`,
       message: status === 'DELIVERED'
         ? 'Đơn sẽ được ghi nhận hoàn tất, chốt thanh toán nếu còn chưa thanh toán và được tính vào doanh thu đã giao.'
+        : status === 'CONFIRMED'
+          ? 'Hệ thống sẽ kiểm tra tồn kho và trừ kho ngay khi xác nhận đơn. Nếu SKU không đủ tồn, thao tác sẽ bị chặn.'
         : 'Trạng thái đơn sẽ được cập nhật và lưu vào lịch sử xử lý để nhân viên khác theo dõi.',
       tone: status === 'DELIVERED' ? 'emerald' : 'orange',
       confirmText: 'Xác nhận chuyển',
@@ -201,13 +203,20 @@ export default function AdminOrdersPage() {
   }
 
   async function saveShipping() {
+    if (!selected) return
+    const canSaveShipping = ['PACKING', 'SHIPPING'].includes(selected.status)
     requestConfirm({
-      title: 'Lưu vận chuyển và ghi chú?',
-      message: 'Thông tin vận chuyển, mã vận đơn và ghi chú nội bộ sẽ được cập nhật cho đơn hiện tại.',
+      title: canSaveShipping ? 'Lưu vận chuyển và ghi chú?' : 'Lưu ghi chú nội bộ?',
+      message: canSaveShipping
+        ? 'Thông tin vận chuyển, mã vận đơn và ghi chú nội bộ sẽ được cập nhật cho đơn hiện tại.'
+        : 'Chỉ ghi chú nội bộ được cập nhật ở trạng thái hiện tại; thông tin vận chuyển vẫn bị khóa.',
       tone: 'dark',
       confirmText: 'Lưu thay đổi',
       action: async () => {
-        await patchOrder({ shippingCarrier: shipping.carrier, tracking: shipping.tracking, internalNote, note: 'Cập nhật vận chuyển/ghi chú' }, 'Đã lưu thông tin đơn hàng.')
+        const payload = canSaveShipping
+          ? { shippingCarrier: shipping.carrier, tracking: shipping.tracking, internalNote, note: 'Cập nhật vận chuyển/ghi chú' }
+          : { internalNote, note: 'Cập nhật ghi chú nội bộ' }
+        await patchOrder(payload, 'Đã lưu thông tin đơn hàng.')
       },
     })
   }
@@ -279,6 +288,9 @@ export default function AdminOrdersPage() {
 
   const nextStatuses = selected ? TRANSITIONS[selected.status] || [] : []
   const sortedEvents = [...(selected?.order_events || [])].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  const canEditShipping = selected && ['PACKING', 'SHIPPING'].includes(selected.status)
+  const hasShippingInfo = selected && (selected.shipping_carrier || selected.tracking)
+  const carrierLabel = selected ? CARRIERS.find(([value]) => value === selected.shipping_carrier)?.[1] || selected.shipping_carrier || '-' : '-'
 
   return (
     <div className="space-y-6">
@@ -460,16 +472,34 @@ export default function AdminOrdersPage() {
                 </div>
               </InfoBlock>
 
-              <InfoBlock title="Vận chuyển" icon="▰" tone="emerald">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div><label className="mb-1 block text-xs font-black uppercase tracking-wide text-gray-400">Đơn vị vận chuyển</label><select value={shipping.carrier} onChange={e => setShipping(p => ({ ...p, carrier: e.target.value }))} className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-bold outline-none transition focus:border-primary"><option value="">Chọn đơn vị</option>{CARRIERS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
-                  <div><label className="mb-1 block text-xs font-black uppercase tracking-wide text-gray-400">Mã vận đơn</label><input value={shipping.tracking} onChange={e => setShipping(p => ({ ...p, tracking: e.target.value }))} placeholder="VD: GHTK123..." className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-bold outline-none transition focus:border-primary" /></div>
-                </div>
+              <InfoBlock title="Vận chuyển thủ công" icon="▰" tone="emerald">
+                {canEditShipping ? (
+                  <>
+                    <div className={`mb-3 rounded-xl border px-3 py-2 text-xs font-bold leading-5 ${selected.status === 'SHIPPING' ? 'border-orange-200 bg-orange-50 text-orange-700' : 'border-emerald-100 bg-emerald-50 text-emerald-700'}`}>
+                      {selected.status === 'PACKING'
+                        ? 'Đơn đang đóng gói: book vận chuyển ngoài hệ thống rồi nhập đơn vị và mã vận đơn tại đây.'
+                        : 'Đơn đang giao: chỉ sửa vận chuyển nếu nhập sai, thao tác sẽ được ghi vào lịch sử xử lý.'}
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div><label className="mb-1 block text-xs font-black uppercase tracking-wide text-gray-400">Đơn vị vận chuyển</label><select value={shipping.carrier} onChange={e => setShipping(p => ({ ...p, carrier: e.target.value }))} className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-bold outline-none transition focus:border-primary"><option value="">Chọn đơn vị</option>{CARRIERS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
+                      <div><label className="mb-1 block text-xs font-black uppercase tracking-wide text-gray-400">Mã vận đơn</label><input value={shipping.tracking} onChange={e => setShipping(p => ({ ...p, tracking: e.target.value }))} placeholder="VD: GHTK123..." className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-bold outline-none transition focus:border-primary" /></div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm leading-6 text-gray-500">
+                    {['PENDING', 'CONFIRMED'].includes(selected.status)
+                      ? 'Thông tin vận chuyển sẽ được nhập khi đơn chuyển sang Đang đóng gói.'
+                      : hasShippingInfo
+                        ? `Đơn vị: ${carrierLabel}${selected.tracking ? ` · Mã vận đơn: ${selected.tracking}` : ''}`
+                        : 'Đơn đã kết thúc hoặc chưa có thông tin vận chuyển.'}
+                  </div>
+                )}
               </InfoBlock>
 
               <InfoBlock title="Ghi chú nội bộ" icon="▨" tone="violet">
                 <textarea value={internalNote} onChange={e => setInternalNote(e.target.value)} rows={2} placeholder="Ghi chú cho nhân viên xử lý đơn..." className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm font-bold outline-none transition focus:border-primary" />
-                <button onClick={saveShipping} disabled={updating} className="mt-3 w-full rounded-xl bg-sole-dark px-4 py-3 text-sm font-black text-white shadow-[0_14px_30px_rgba(15,23,42,.18)] transition hover:-translate-y-0.5 hover:bg-gray-800 disabled:opacity-50">Lưu vận chuyển/ghi chú</button>
+                <button onClick={saveShipping} disabled={updating} className="mt-3 w-full rounded-xl bg-sole-dark px-4 py-3 text-sm font-black text-white shadow-[0_14px_30px_rgba(15,23,42,.18)] transition hover:-translate-y-0.5 hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-40">{canEditShipping ? 'Lưu vận chuyển/ghi chú' : 'Lưu ghi chú nội bộ'}</button>
+                {!canEditShipping && <p className="mt-2 text-xs font-bold text-gray-400">Đơn vị vận chuyển và mã vận đơn chỉ mở ở trạng thái đang đóng gói hoặc đang giao.</p>}
               </InfoBlock>
 
               {nextStatuses.length > 0 && (

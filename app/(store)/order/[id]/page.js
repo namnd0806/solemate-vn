@@ -18,6 +18,7 @@ const STATUS_COLORS = {
   DELIVERED:'bg-green-100 text-green-700',
   CANCELLED:'bg-red-100 text-red-600'
 }
+const CARRIER_LABELS = { GHN: 'GHN', GHTK: 'GHTK', VIETTEL_POST: 'Viettel Post', SHOP: 'Shop tự giao', OTHER: 'Khác' }
 
 function OrderDetailContent() {
   const { id } = useParams()
@@ -140,7 +141,13 @@ function OrderDetailContent() {
           <p className="font-medium text-sole-dark">{order.contact?.fullName}</p>
           <p className="flex items-center gap-2"><PhoneIcon className="size-4 text-gray-400" /> {order.contact?.phone}</p>
           <p className="flex items-start gap-2"><PinIcon className="mt-0.5 size-4 shrink-0 text-gray-400" /> <span>{order.contact?.address}, {order.contact?.ward}, {order.contact?.district}, {order.contact?.province}</span></p>
-          {order.tracking && <p className="flex items-center gap-2 font-bold text-primary"><TruckIcon className="size-4" /> Mã vận đơn: {order.tracking}</p>}
+          {(order.shipping_carrier || order.tracking) && (
+            <p className="flex items-center gap-2 font-bold text-primary">
+              <TruckIcon className="size-4" />
+              {order.shipping_carrier ? `Đơn vị: ${CARRIER_LABELS[order.shipping_carrier] || order.shipping_carrier}` : 'Vận chuyển'}
+              {order.tracking ? ` · Mã vận đơn: ${order.tracking}` : ''}
+            </p>
+          )}
         </div>
       </section>
 

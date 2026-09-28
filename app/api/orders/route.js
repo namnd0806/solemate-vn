@@ -16,6 +16,7 @@ export async function GET(request) {
       status: searchParams.get('status') || undefined,
       customerId: searchParams.get('customerId') || undefined,
       page: searchParams.get('page') || 1,
+      limit: searchParams.get('all') === '1' ? 'all' : (searchParams.get('limit') || 20),
     })
     if (!result.ok) return NextResponse.json(result, { status: 500 })
     return NextResponse.json(result)

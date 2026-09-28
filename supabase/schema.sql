@@ -100,6 +100,7 @@ CREATE TABLE orders (
   total           INTEGER NOT NULL CHECK (total >= 0),
   promo_code      TEXT,
   stock_restored  BOOLEAN NOT NULL DEFAULT FALSE,
+  stock_deducted  BOOLEAN NOT NULL DEFAULT FALSE,
   contact         JSONB NOT NULL,
   shipping_carrier TEXT NOT NULL DEFAULT '',
   tracking        TEXT NOT NULL DEFAULT '',
