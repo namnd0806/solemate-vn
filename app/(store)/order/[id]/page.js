@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
-import { formatVND } from '@/lib/utils'
+import { formatVND, formatVNDateTime } from '@/lib/utils'
 import ConfirmModal from '@/components/store/ConfirmModal'
 import Toast from '@/components/store/Toast'
 import Link from 'next/link'
@@ -126,7 +126,7 @@ function OrderDetailContent() {
         <div>
           <p className="section-kicker">Chi tiết đơn hàng</p>
           <h1 className="mt-1.5 text-2xl font-black text-sole-dark sm:text-3xl">Đơn hàng #{order.id}</h1>
-          <p className="text-sm text-gray-400 mt-1">{new Date(order.created_at).toLocaleString('vi-VN')}</p>
+          <p className="text-sm text-gray-400 mt-1">{formatVNDateTime(order.created_at)}</p>
         </div>
         <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${STATUS_COLORS[order.status] || ''}`}>
           {STATUS_LABELS[order.status] || order.status}

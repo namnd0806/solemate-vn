@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { formatVND } from '@/lib/utils'
+import { formatVND, formatVNDateTime } from '@/lib/utils'
 import AdminPagination from '@/components/admin/AdminPagination'
 import StockAdjustModal from '@/components/admin/StockAdjustModal'
 import { AdminMetricCard, ProductToast } from '@/components/admin/ProductFeedback'
@@ -334,7 +334,7 @@ export default function AdminInventoryPage() {
                   <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-black ${variant.productStatus === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>{variant.productStatus === 'ACTIVE' ? 'Đang bán' : 'Đã ẩn'}</span></td>
                   <td className={`px-5 py-4 text-right text-lg font-black ${variant.stock <= LOW_STOCK_THRESHOLD ? 'text-red-500' : 'text-sole-dark'}`}>{variant.stock}</td>
                   <td className="px-5 py-4 text-right font-black text-sole-dark">{formatVND(variant.price || 0)}</td>
-                  <td className="px-5 py-4 text-xs font-bold text-gray-400">{variant.updated_at ? new Date(variant.updated_at).toLocaleString('vi-VN') : 'Vừa cập nhật'}</td>
+                  <td className="px-5 py-4 text-xs font-bold text-gray-400">{variant.updated_at ? formatVNDateTime(variant.updated_at) : 'Vừa cập nhật'}</td>
                 </tr>
               ))}
             </tbody>
@@ -390,7 +390,7 @@ export default function AdminInventoryPage() {
                   <p className="font-mono text-[11px] font-black text-gray-500">{movement.sku}</p>
                   <span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-[11px] font-black ${movement.type === 'SALE' ? 'bg-sky-50 text-sky-700' : movement.type === 'CANCEL_RETURN' ? 'bg-emerald-50 text-emerald-700' : 'bg-orange-50 text-primary'}`}>{MOVEMENT_LABELS[movement.type] || movement.type}</span>
                 </div>
-                <p className="text-right text-xs font-bold text-gray-400">{new Date(movement.created_at).toLocaleString('vi-VN')}</p>
+                <p className="text-right text-xs font-bold text-gray-400">{formatVNDateTime(movement.created_at)}</p>
               </div>
               <div className="mt-4 grid grid-cols-3 overflow-hidden rounded-2xl border border-gray-100 bg-[#f7f8f9] text-center">
                 <div className="p-3"><p className="text-[10px] font-bold text-gray-400">Trước</p><p className="font-black text-sole-dark">{movement.before}</p></div>
@@ -428,7 +428,7 @@ export default function AdminInventoryPage() {
                   <td className="px-5 py-4 text-right font-black text-sole-dark">{movement.after}</td>
                   <td className="max-w-[240px] px-5 py-4 text-xs leading-5 text-gray-500">{movement.note || 'Không có ghi chú'}</td>
                   <td className="px-5 py-4 text-xs font-bold text-gray-400">{movement.actor || 'SYSTEM'}</td>
-                  <td className="px-5 py-4 text-xs text-gray-400">{new Date(movement.created_at).toLocaleString('vi-VN')}</td>
+                  <td className="px-5 py-4 text-xs text-gray-400">{formatVNDateTime(movement.created_at)}</td>
                 </tr>
               ))}
             </tbody>

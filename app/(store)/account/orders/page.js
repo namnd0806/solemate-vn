@@ -2,7 +2,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { verifyJwt } from '@/lib/auth'
 import { getOrders } from '@/lib/db/orders'
-import { formatVND } from '@/lib/utils'
+import { formatVND, formatVNDate } from '@/lib/utils'
 import Link from 'next/link'
 import { ArrowRightIcon, BoxIcon } from '@/components/store/Icons'
 
@@ -43,7 +43,7 @@ export default async function MyOrdersPage() {
                 <span className={`rounded-full px-3 py-1.5 text-xs font-bold ${STATUS_COLORS[o.status] || 'bg-gray-100 text-gray-600'}`}>{STATUS_LABELS[o.status] || o.status}</span>
               </div>
               <div className="flex items-end justify-between border-t border-gray-100 pt-4 text-sm text-gray-500">
-                <span>{new Date(o.created_at).toLocaleDateString('vi-VN')}</span>
+                <span>{formatVNDate(o.created_at)}</span>
                 <span className="flex items-center gap-3"><strong className="text-base text-primary">{formatVND(o.total)}</strong><ArrowRightIcon className="size-4 transition group-hover:translate-x-1" /></span>
               </div>
             </Link>

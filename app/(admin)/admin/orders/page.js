@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { formatVND } from '@/lib/utils'
+import { formatVND, formatVNDateTime, getVNDateKey } from '@/lib/utils'
 import AdminPagination from '@/components/admin/AdminPagination'
 import { AdminConfirm, AdminMetricCard, ProductToast } from '@/components/admin/ProductFeedback'
 
@@ -256,23 +256,25 @@ export default function AdminOrdersPage() {
       statusCounts,
       action: (statusCounts.PENDING || 0) + (statusCounts.CONFIRMED || 0) + (statusCounts.PACKING || 0),
       operating: (statusCounts.PACKING || 0) + (statusCounts.SHIPPING || 0),
-      revenue: orders.filter(o => o.status === 'DELIVERED').reduce((sum, o) => sum + o.total, 0),
+      revenue: orders.filter(o => o.status === 'DELIVERED' && o.payment_status === 'PAID').reduce((sum, o) => sum + o.total, 0),
       cancelRate: total ? Math.round((cancelled / total) * 100) : 0,
       cancelled,
     }
   }, [orders])
 
   const visibleOrders = useMemo(() => {
-    const now = new Date()
+    const todayKey = getVNDateKey()
+    const today = new Date(`${todayKey}T00:00:00+07:00`)
     const keyword = search.trim().toLowerCase()
     return orders.filter(order => {
       if (filterStatus && order.status !== filterStatus) return false
       if (timeFilter !== 'ALL') {
-        const created = new Date(order.created_at)
-        const diffDays = (now - created) / 86400000
-        if (timeFilter === 'TODAY' && created.toDateString() !== now.toDateString()) return false
-        if (timeFilter === '7D' && diffDays > 7) return false
-        if (timeFilter === '30D' && diffDays > 30) return false
+        const createdKey = getVNDateKey(order.created_at)
+        const created = new Date(`${createdKey}T00:00:00+07:00`)
+        const diffDays = (today - created) / 86400000
+        if (timeFilter === 'TODAY' && createdKey !== todayKey) return false
+        if (timeFilter === '7D' && (diffDays < 0 || diffDays > 6)) return false
+        if (timeFilter === '30D' && (diffDays < 0 || diffDays > 29)) return false
       }
       if (!keyword) return true
       const haystack = [
@@ -375,7 +377,7 @@ export default function AdminOrdersPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-mono text-xs font-black text-sole-dark">#{order.id}</p>
-                    <p className="mt-1 text-xs text-gray-400">{new Date(order.created_at).toLocaleString('vi-VN')}</p>
+                    <p className="mt-1 text-xs text-gray-400">{formatVNDateTime(order.created_at)}</p>
                   </div>
                   <StatusBadge status={order.status} />
                 </div>
@@ -407,7 +409,7 @@ export default function AdminOrdersPage() {
                 {loading ? [...Array(5)].map((_, i) => <tr key={i}><td colSpan={7} className="px-4 py-4"><div className="h-4 animate-pulse rounded bg-gray-100" /></td></tr>) : pagedOrders.map(order => (
                   <tr key={order.id} onClick={() => selectOrder(order)} className={`cursor-pointer border-b border-gray-100 transition hover:bg-orange-50/30 ${selected?.id === order.id ? 'bg-orange-50/70 shadow-[inset_4px_0_0_#f26a2e]' : ''}`}>
                     <td className="px-5 py-4"><span className={`grid size-5 place-items-center rounded-md border text-xs font-black ${selected?.id === order.id ? 'border-primary bg-primary text-white' : 'border-gray-300 bg-white text-white'}`}>✓</span></td>
-                    <td className="px-4 py-3"><div className="break-all font-mono text-xs font-black text-sole-dark">#{order.id}</div><div className="mt-1 text-xs text-gray-400">{new Date(order.created_at).toLocaleString('vi-VN')}</div></td>
+                    <td className="px-4 py-3"><div className="break-all font-mono text-xs font-black text-sole-dark">#{order.id}</div><div className="mt-1 text-xs text-gray-400">{formatVNDateTime(order.created_at)}</div></td>
                     <td className="px-4 py-3"><div className="line-clamp-1 font-bold text-gray-700">{order.contact?.fullName || 'Khách'}</div><div className="text-xs text-gray-400">{order.contact?.phone}</div></td>
                     <td className="px-4 py-3"><StatusBadge status={order.status} /></td>
                     <td className="px-4 py-3"><div className="text-xs font-bold text-gray-600">{PAYMENT_METHODS[order.payment_method] || order.payment_method}</div><div className="mt-1"><PaymentBadge order={order} /></div></td>
@@ -432,7 +434,7 @@ export default function AdminOrdersPage() {
                 <div>
                   <h2 className="text-lg font-black text-sole-dark">Chi tiết đơn hàng</h2>
                   <div className="mt-1 font-mono text-sm font-black text-blue-900">#{selected.id}</div>
-                  <p className="mt-1 text-xs text-gray-400">{new Date(selected.created_at).toLocaleString('vi-VN')}</p>
+                  <p className="mt-1 text-xs text-gray-400">{formatVNDateTime(selected.created_at)}</p>
                 </div>
                 <StatusBadge status={selected.status} />
               </div>
@@ -453,7 +455,7 @@ export default function AdminOrdersPage() {
                   <div><p className="text-xs font-bold text-gray-400">Phương thức</p><p className="mt-1 font-black text-sole-dark">{PAYMENT_METHODS[selected.payment_method]}</p></div>
                   <div><p className="text-xs font-bold text-gray-400">Trạng thái thanh toán</p><div className="mt-1"><PaymentBadge order={selected} /></div></div>
                   <div><p className="text-xs font-bold text-gray-400">Mã giao dịch</p><p className="mt-1 font-black text-sole-dark">{selected.payment_transaction || selected.bank_transfer_code || 'SMB123456789'}</p></div>
-                  <div><p className="text-xs font-bold text-gray-400">Thời gian thanh toán</p><p className="mt-1 font-semibold text-gray-500">{selected.paid_at ? new Date(selected.paid_at).toLocaleString('vi-VN') : '-'}</p></div>
+                  <div><p className="text-xs font-bold text-gray-400">Thời gian thanh toán</p><p className="mt-1 font-semibold text-gray-500">{selected.paid_at ? formatVNDateTime(selected.paid_at) : '-'}</p></div>
                 </div>
               </InfoBlock>
 
@@ -516,7 +518,7 @@ export default function AdminOrdersPage() {
                 <p className="mb-2 text-xs font-black uppercase tracking-wide text-gray-400">Lịch sử xử lý</p>
                 {sortedEvents.length === 0 ? <div className="rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-400">Chưa có lịch sử thao tác.</div> : (
                   <div className="space-y-2">
-                    {sortedEvents.map(event => <div key={event.id} className="rounded-xl border border-gray-100 px-4 py-3 text-sm"><div className="flex justify-between gap-3"><span className="font-bold text-sole-dark">{event.event_type === 'CANCEL' ? 'Hủy đơn' : event.event_type === 'STATUS_CHANGE' ? 'Đổi trạng thái' : 'Cập nhật đơn'}</span><span className="text-xs text-gray-400">{new Date(event.created_at).toLocaleString('vi-VN')}</span></div>{(event.from_status || event.to_status) && <p className="mt-1 text-xs text-gray-500">{STATUS_CONFIG[event.from_status]?.label || event.from_status} → {STATUS_CONFIG[event.to_status]?.label || event.to_status}</p>}{event.note && <p className="mt-1 text-xs text-gray-500">{event.note}</p>}</div>)}
+                    {sortedEvents.map(event => <div key={event.id} className="rounded-xl border border-gray-100 px-4 py-3 text-sm"><div className="flex justify-between gap-3"><span className="font-bold text-sole-dark">{event.event_type === 'CANCEL' ? 'Hủy đơn' : event.event_type === 'STATUS_CHANGE' ? 'Đổi trạng thái' : 'Cập nhật đơn'}</span><span className="text-xs text-gray-400">{formatVNDateTime(event.created_at)}</span></div>{(event.from_status || event.to_status) && <p className="mt-1 text-xs text-gray-500">{STATUS_CONFIG[event.from_status]?.label || event.from_status} → {STATUS_CONFIG[event.to_status]?.label || event.to_status}</p>}{event.note && <p className="mt-1 text-xs text-gray-500">{event.note}</p>}</div>)}
                   </div>
                 )}
               </section>

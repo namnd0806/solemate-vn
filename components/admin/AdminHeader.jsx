@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { formatVNDate } from '@/lib/utils'
 
 const TITLES = {
   '/admin/dashboard': ['Dashboard', 'Tổng quan vận hành cửa hàng'],
@@ -47,7 +48,7 @@ export default function AdminHeader({ admin }) {
   }
 
   const timeText = now ? now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--'
-  const dateText = now ? now.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' }) : ''
+  const dateText = now ? formatVNDate(now, { weekday: 'short', day: '2-digit', month: '2-digit' }) : ''
 
   return (
     <header className="admin-topbar sticky top-0 z-40 flex min-h-[64px] items-center justify-between gap-2 border-b border-gray-200/80 bg-white/86 px-2 shadow-[0_10px_34px_rgba(20,23,28,.055)] backdrop-blur-xl transition-colors sm:min-h-[72px] sm:gap-3 sm:px-6">

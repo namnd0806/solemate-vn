@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { formatVND } from '@/lib/utils'
+import { formatVND, formatVNDate, formatVNDateTime } from '@/lib/utils'
 import AdminPagination from '@/components/admin/AdminPagination'
 import { AdminConfirm, AdminMetricCard, ProductToast } from '@/components/admin/ProductFeedback'
 
@@ -192,13 +192,13 @@ export default function AdminCustomersPage() {
                 <tbody>
                   {pagedCustomers.map(customer => (
                     <tr key={customer.id} className="border-t border-gray-100 transition hover:bg-orange-50/30">
-                      <td className="px-5 py-4"><div className="flex items-center gap-3"><CustomerAvatar customer={customer} /><div><p className="font-black text-sole-dark">{customer.full_name || `${customer.first_name} ${customer.last_name}`}</p><p className="text-xs text-gray-400">Tạo từ {new Date(customer.created_at).toLocaleDateString('vi-VN')}</p></div></div></td>
+                      <td className="px-5 py-4"><div className="flex items-center gap-3"><CustomerAvatar customer={customer} /><div><p className="font-black text-sole-dark">{customer.full_name || `${customer.first_name} ${customer.last_name}`}</p><p className="text-xs text-gray-400">Tạo từ {formatVNDate(customer.created_at)}</p></div></div></td>
                       <td className="px-5 py-4"><p className="font-bold text-gray-600">{customer.email || 'Chưa có email'}</p><p className="text-xs text-gray-400">{customer.phone || 'Chưa có SĐT'}</p></td>
                       <td className="px-5 py-4"><CustomerTypeBadge type={customer.type} /></td>
                       <td className="px-5 py-4 text-center font-black text-sole-dark">{customer.orders_count}</td>
                       <td className="px-5 py-4 text-center font-black text-red-500">{customer.cancelled_count || 0}</td>
                       <td className="px-5 py-4 text-right font-black text-primary">{formatVND(customer.total_spent)}</td>
-                      <td className="px-5 py-4 text-xs font-bold text-gray-400">{customer.last_order_at ? new Date(customer.last_order_at).toLocaleDateString('vi-VN') : 'Chưa mua'}</td>
+                      <td className="px-5 py-4 text-xs font-bold text-gray-400">{customer.last_order_at ? formatVNDate(customer.last_order_at) : 'Chưa mua'}</td>
                       <td className="px-5 py-4 text-right"><button onClick={() => setSelected(customer)} className="rounded-full border border-gray-200 px-4 py-2 text-xs font-black transition hover:border-primary hover:text-primary">Chi tiết</button></td>
                     </tr>
                   ))}
@@ -218,7 +218,7 @@ export default function AdminCustomersPage() {
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2"><div className="rounded-2xl bg-white p-4 shadow-sm"><p className="text-xs font-bold text-gray-400">Tổng đơn</p><p className="mt-1 text-2xl font-black text-sole-dark">{selected.orders_count}</p></div><div className="rounded-2xl bg-white p-4 shadow-sm"><p className="text-xs font-bold text-gray-400">Đã giao</p><p className="mt-1 text-2xl font-black text-sole-dark">{selected.delivered_count}</p></div><div className="rounded-2xl bg-white p-4 shadow-sm"><p className="text-xs font-bold text-gray-400">Đã hủy</p><p className="mt-1 text-2xl font-black text-red-500">{selected.cancelled_count || 0}</p></div><div className="rounded-2xl bg-orange-50 p-4 shadow-sm"><p className="text-xs font-bold text-primary">Tổng chi tiêu</p><p className="mt-1 break-words text-2xl font-black text-primary">{formatVND(selected.total_spent)}</p></div></div>
             <h3 className="mb-3 mt-6 font-black text-sole-dark">Đơn hàng liên quan</h3>
             <div className="space-y-2">
-              {[...(selected.orders || [])].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).map(order => <div key={order.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white p-3 shadow-sm"><div className="min-w-0"><p className="font-mono text-xs font-black text-sole-dark">#{order.id}</p><p className="mt-1 text-[11px] font-semibold text-gray-400">{new Date(order.created_at).toLocaleString('vi-VN')}</p></div><div className="text-right"><p className="text-sm font-black text-primary">{formatVND(order.total)}</p><p className="mt-1 text-[11px] font-bold text-gray-400">{STATUS_LABELS[order.status] || order.status}</p></div></div>)}
+              {[...(selected.orders || [])].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).map(order => <div key={order.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white p-3 shadow-sm"><div className="min-w-0"><p className="font-mono text-xs font-black text-sole-dark">#{order.id}</p><p className="mt-1 text-[11px] font-semibold text-gray-400">{formatVNDateTime(order.created_at)}</p></div><div className="text-right"><p className="text-sm font-black text-primary">{formatVND(order.total)}</p><p className="mt-1 text-[11px] font-bold text-gray-400">{STATUS_LABELS[order.status] || order.status}</p></div></div>)}
               {selected.orders?.length === 0 && <div className="rounded-2xl bg-white p-5 text-center text-sm font-bold text-gray-400">Chưa có đơn hàng.</div>}
             </div>
             {selected.type === 'REGISTERED' ? <button onClick={() => setConfirmCustomer(selected)} className={`mt-6 w-full rounded-2xl py-3 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5 ${selected.active ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-500 hover:bg-emerald-600'}`}>{selected.active ? 'Khóa tài khoản' : 'Mở lại tài khoản'}</button> : <div className="mt-6 rounded-2xl border border-sky-100 bg-sky-50 p-4 text-sm font-semibold leading-6 text-sky-700">Khách này mua nhanh không đăng nhập, nên không có tài khoản để khóa/mở. Shop vẫn xem được lịch sử đơn dựa trên số điện thoại.</div>}

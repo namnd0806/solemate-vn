@@ -1,11 +1,61 @@
 import { getSupabaseServerClient } from '@/lib/supabase/server'
-import { formatVND } from '@/lib/utils'
+import { addDays, formatVND, formatVNDateTime, getVNDateKey, getVNMonthKey, getVNYearKey } from '@/lib/utils'
 import Link from 'next/link'
 
 export const metadata = { title: 'Dashboard – Admin SoleMate VN' }
 
-async function getDashboardData() {
+function normalizeDashboardFilters(searchParams = {}) {
+  const mode = ['day', 'month', 'year'].includes(searchParams.revenueMode) ? searchParams.revenueMode : 'day'
+  const now = new Date()
+  return {
+    mode,
+    date: searchParams.date || getVNDateKey(now),
+    month: searchParams.month || getVNMonthKey(now),
+    year: searchParams.year || getVNYearKey(now),
+  }
+}
+
+function getRevenueKey(order, mode) {
+  const sourceDate = order.delivered_at || order.created_at
+  if (mode === 'year') return getVNYearKey(sourceDate)
+  if (mode === 'month') return getVNMonthKey(sourceDate)
+  return getVNDateKey(sourceDate)
+}
+
+function buildRevenueSeries(deliveredOrders, filters) {
+  if (filters.mode === 'year') {
+    const year = Number(filters.year)
+    return Array.from({ length: 12 }, (_, index) => {
+      const month = String(index + 1).padStart(2, '0')
+      const key = `${year}-${month}`
+      const revenue = deliveredOrders.filter(order => getRevenueKey(order, 'month') === key).reduce((sum, order) => sum + Number(order.total || 0), 0)
+      return { label: `T${index + 1}`, key, revenue }
+    })
+  }
+
+  if (filters.mode === 'month') {
+    const [year, month] = filters.month.split('-').map(Number)
+    const daysInMonth = new Date(year, month, 0).getDate()
+    return Array.from({ length: daysInMonth }, (_, index) => {
+      const day = String(index + 1).padStart(2, '0')
+      const key = `${filters.month}-${day}`
+      const revenue = deliveredOrders.filter(order => getRevenueKey(order, 'day') === key).reduce((sum, order) => sum + Number(order.total || 0), 0)
+      return { label: day, key, revenue }
+    })
+  }
+
+  const selected = new Date(`${filters.date}T12:00:00+07:00`)
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = addDays(selected, index - 6)
+    const key = getVNDateKey(date)
+    const revenue = deliveredOrders.filter(order => getRevenueKey(order, 'day') === key).reduce((sum, order) => sum + Number(order.total || 0), 0)
+    return { label: key.slice(5), key, revenue }
+  })
+}
+
+async function getDashboardData(searchParams) {
   const supabase = getSupabaseServerClient()
+  const revenueFilters = normalizeDashboardFilters(searchParams)
   const [ordersRes, settingsRes] = await Promise.all([
     supabase
       .from('orders')
@@ -16,30 +66,22 @@ async function getDashboardData() {
 
   const orders = ordersRes.data || []
   const settings = settingsRes.data || { low_stock_threshold: 3 }
+  const deliveredPaidOrders = orders.filter(o => o.status === 'DELIVERED' && o.payment_status === 'PAID')
 
-  const revenue = orders.filter(o => o.status === 'DELIVERED').reduce((s, o) => s + o.total, 0)
+  const revenue = deliveredPaidOrders.reduce((s, o) => s + o.total, 0)
   const pending = orders.filter(o => ['PENDING', 'CONFIRMED', 'PACKING'].includes(o.status)).length
-  const todayStr = new Date().toISOString().slice(0, 10)
-  const todayOrders = orders.filter(o => o.created_at?.slice(0, 10) === todayStr).length
-  const getDeliveredDate = order => (order.delivered_at || order.created_at || '').slice(0, 10)
-  const todayDeliveredOrders = orders.filter(o => o.status === 'DELIVERED' && getDeliveredDate(o) === todayStr).length
+  const todayStr = getVNDateKey()
+  const todayOrders = orders.filter(o => getVNDateKey(o.created_at) === todayStr).length
+  const todayDeliveredOrders = deliveredPaidOrders.filter(o => getRevenueKey(o, 'day') === todayStr).length
   const todayRevenue = orders
-    .filter(o => o.status === 'DELIVERED' && getDeliveredDate(o) === todayStr)
+    .filter(o => o.status === 'DELIVERED' && o.payment_status === 'PAID' && getRevenueKey(o, 'day') === todayStr)
     .reduce((s, o) => s + o.total, 0)
 
   const statusBreakdown = { PENDING: 0, CONFIRMED: 0, PACKING: 0, SHIPPING: 0, DELIVERED: 0, CANCELLED: 0 }
   orders.forEach(o => { if (statusBreakdown[o.status] !== undefined) statusBreakdown[o.status]++ })
 
-  // 7-day revenue
-  const days = []
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(); d.setDate(d.getDate() - i)
-    const dateStr = d.toISOString().slice(0, 10)
-    const dayRevenue = orders
-      .filter(o => o.status === 'DELIVERED' && getDeliveredDate(o) === dateStr)
-      .reduce((s, o) => s + o.total, 0)
-    days.push({ date: dateStr.slice(5), revenue: dayRevenue })
-  }
+  const revenueSeries = buildRevenueSeries(deliveredPaidOrders, revenueFilters)
+  const filteredRevenue = revenueSeries.reduce((sum, item) => sum + item.revenue, 0)
 
   // Low stock
   const { data: lowStock } = await supabase
@@ -50,8 +92,7 @@ async function getDashboardData() {
     .order('stock', { ascending: true })
 
   const bestSellerMap = new Map()
-  orders
-    .filter(order => order.status === 'DELIVERED')
+  deliveredPaidOrders
     .flatMap(order => order.order_items || [])
     .forEach(item => {
       const key = item.product_id || item.name
@@ -64,7 +105,7 @@ async function getDashboardData() {
     .sort((a, b) => b.qty - a.qty || b.revenue - a.revenue)
     .slice(0, 5)
 
-  return { revenue, pending, statusBreakdown, days, lowStock: lowStock || [], recentOrders: orders.slice(0, 6), todayOrders, todayRevenue, todayDeliveredOrders, bestSellers }
+  return { revenue, pending, statusBreakdown, revenueSeries, revenueFilters, filteredRevenue, lowStock: lowStock || [], recentOrders: orders.slice(0, 6), todayOrders, todayRevenue, todayDeliveredOrders, bestSellers }
 }
 
 const STATUS_VN = { PENDING: 'Chờ xác nhận', CONFIRMED: 'Đã xác nhận', PACKING: 'Đang đóng gói', SHIPPING: 'Đang giao', DELIVERED: 'Đã giao', CANCELLED: 'Đã hủy' }
@@ -119,9 +160,10 @@ function DashboardMetric({ label, value, hint, tone, path, trend }) {
   )
 }
 
-export default async function DashboardPage() {
-  const { revenue, pending, statusBreakdown, days, lowStock, recentOrders, todayOrders, todayRevenue, todayDeliveredOrders, bestSellers } = await getDashboardData()
-  const maxRevenue = Math.max(...days.map(d => d.revenue), 1)
+export default async function DashboardPage({ searchParams }) {
+  const params = await searchParams
+  const { revenue, pending, statusBreakdown, revenueSeries, revenueFilters, filteredRevenue, lowStock, recentOrders, todayOrders, todayRevenue, todayDeliveredOrders, bestSellers } = await getDashboardData(params || {})
+  const maxRevenue = Math.max(...revenueSeries.map(d => d.revenue), 1)
   const totalOrders = Object.values(statusBreakdown).reduce((a, b) => a + b, 0)
   const visibleLowStock = lowStock.slice(0, 8)
 
@@ -157,20 +199,47 @@ export default async function DashboardPage() {
           <div className="absolute right-8 top-0 h-24 w-80 rounded-full bg-primary/10 blur-3xl" />
           <div className="relative mb-5 flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="font-black text-sole-dark">Doanh thu 7 ngày qua</h2>
-              <p className="mt-1 text-xs text-gray-400">Chỉ tính các đơn đã giao, giúp xem nhịp vận hành thực tế.</p>
+              <h2 className="font-black text-sole-dark">Doanh thu đã giao</h2>
+              <p className="mt-1 text-xs text-gray-400">Chỉ tính đơn đã giao và đã thanh toán, theo múi giờ Việt Nam.</p>
             </div>
-            <span className="rounded-full border border-orange-100 bg-orange-50 px-3 py-1 text-xs font-black text-primary">7 ngày</span>
+            <div className="rounded-2xl border border-orange-100 bg-orange-50 px-4 py-2 text-right shadow-sm">
+              <p className="text-[10px] font-black uppercase tracking-[.16em] text-primary/70">Theo bộ lọc</p>
+              <p className="mt-1 text-lg font-black text-primary">{formatVND(filteredRevenue)}</p>
+            </div>
           </div>
-          <div className="relative flex h-52 items-end gap-3 rounded-[24px] bg-gradient-to-b from-[#f7f8f9] to-white p-4">
-            {days.map(d => (
-              <div key={d.date} className="flex flex-1 flex-col items-center gap-2">
+
+          <form className="relative mb-4 grid gap-3 rounded-[24px] border border-gray-100 bg-gradient-to-r from-white to-orange-50/40 p-3 shadow-inner sm:grid-cols-[auto_minmax(0,1fr)_auto]">
+            <div className="grid grid-cols-3 gap-1 rounded-2xl bg-white p-1 shadow-sm ring-1 ring-gray-100">
+              {[
+                ['day', 'Ngày'],
+                ['month', 'Tháng'],
+                ['year', 'Năm'],
+              ].map(([value, label]) => (
+                <label key={value} className={`cursor-pointer rounded-xl px-3 py-2 text-center text-xs font-black transition ${revenueFilters.mode === value ? 'bg-primary text-white shadow-[0_10px_24px_rgba(242,106,46,.25)]' : 'text-gray-500 hover:bg-orange-50 hover:text-primary'}`}>
+                  <input className="sr-only" type="radio" name="revenueMode" value={value} defaultChecked={revenueFilters.mode === value} />
+                  {label}
+                </label>
+              ))}
+            </div>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <input name="date" type="date" defaultValue={revenueFilters.date} className="h-11 rounded-2xl border border-gray-200 bg-white px-3 text-sm font-bold text-sole-dark outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10" />
+              <input name="month" type="month" defaultValue={revenueFilters.month} className="h-11 rounded-2xl border border-gray-200 bg-white px-3 text-sm font-bold text-sole-dark outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10" />
+              <input name="year" inputMode="numeric" pattern="[0-9]{4}" defaultValue={revenueFilters.year} className="h-11 rounded-2xl border border-gray-200 bg-white px-3 text-sm font-bold text-sole-dark outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10" />
+            </div>
+            <button className="h-11 rounded-2xl bg-sole-dark px-5 text-sm font-black text-white shadow-[0_14px_30px_rgba(15,23,42,.14)] transition hover:-translate-y-0.5 hover:bg-primary">
+              Lọc
+            </button>
+          </form>
+
+          <div className="relative flex h-56 items-end gap-2 overflow-x-auto rounded-[24px] bg-gradient-to-b from-[#f7f8f9] to-white p-4 sm:gap-3">
+            {revenueSeries.map(d => (
+              <div key={d.key} className="flex min-w-10 flex-1 flex-col items-center gap-2">
                 <div
-                  className="w-full rounded-t-2xl bg-gradient-to-t from-primary to-orange-300 shadow-[0_10px_22px_rgba(242,106,46,.18)] transition-all hover:opacity-80"
+                  className="w-full rounded-t-2xl bg-gradient-to-t from-primary via-orange-400 to-orange-200 shadow-[0_10px_22px_rgba(242,106,46,.18)] transition-all hover:opacity-80"
                   style={{ height: `${(d.revenue / maxRevenue) * 100}%` }}
                   title={formatVND(d.revenue)}
                 />
-                <span className="text-[11px] font-bold text-gray-400">{d.date}</span>
+                <span className="text-[11px] font-bold text-gray-400">{d.label}</span>
               </div>
             ))}
           </div>
@@ -244,7 +313,7 @@ export default async function DashboardPage() {
               <div key={order.id} className="flex flex-wrap items-center justify-between gap-3 p-4 transition hover:bg-orange-50/25">
                 <div>
                   <p className="font-mono text-xs font-black text-sole-dark">#{order.id}</p>
-                  <p className="mt-1 text-xs text-gray-400">{order.contact?.fullName || 'Khách'} · {new Date(order.created_at).toLocaleString('vi-VN')}</p>
+                  <p className="mt-1 text-xs text-gray-400">{order.contact?.fullName || 'Khách'} · {formatVNDateTime(order.created_at)}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${STATUS_TONE[order.status] || 'border-gray-100 bg-gray-50 text-gray-500'}`}>{STATUS_VN[order.status] || order.status}</span>

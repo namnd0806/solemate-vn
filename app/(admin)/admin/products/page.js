@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, useRef } from 'react'
-import { formatVND } from '@/lib/utils'
+import { formatVND, formatVNDateTimeInput } from '@/lib/utils'
 import Link from 'next/link'
 import { isProductSaleActive } from '@/lib/pricing'
 import AdminPagination from '@/components/admin/AdminPagination'
@@ -26,10 +26,7 @@ function slugify(str) {
 }
 
 function toLocalInput(value) {
-  if (!value) return ''
-  const date = new Date(value)
-  const offset = date.getTimezoneOffset() * 60_000
-  return new Date(date.getTime() - offset).toISOString().slice(0, 16)
+  return formatVNDateTimeInput(value)
 }
 
 export default function AdminProductsPage() {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { formatVND } from '@/lib/utils'
+import { formatVND, formatVNDate, formatVNDateTimeInput } from '@/lib/utils'
 import AdminPagination from '@/components/admin/AdminPagination'
 import { AdminConfirm, ProductToast } from '@/components/admin/ProductFeedback'
 import FieldError from '@/components/FieldError'
@@ -73,8 +73,8 @@ export default function AdminPromotionsPage() {
   function openEdit(p) {
     setForm({
       ...p,
-      start_at: p.start_at?.slice(0, 16),
-      end_at: p.end_at?.slice(0, 16),
+      start_at: formatVNDateTimeInput(p.start_at),
+      end_at: formatVNDateTimeInput(p.end_at),
       max_discount: p.max_discount ?? '',
       value: p.value, min_spend: p.min_spend, usage_limit: p.usage_limit,
     })
@@ -236,7 +236,7 @@ export default function AdminPromotionsPage() {
                 </div>
                 <div className="flex justify-between">
                   <span>Hết hạn</span>
-                  <span className="font-medium">{new Date(p.end_at).toLocaleDateString('vi-VN')}</span>
+                  <span className="font-medium">{formatVNDate(p.end_at)}</span>
                 </div>
               </div>
 
