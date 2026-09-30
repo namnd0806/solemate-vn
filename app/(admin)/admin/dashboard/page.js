@@ -6,19 +6,9 @@ import Link from 'next/link'
 export const metadata = { title: 'Dashboard – Admin SoleMate VN' }
 
 function normalizeDashboardFilters(searchParams = {}) {
-  const mode = ['day', 'month', 'year'].includes(searchParams.revenueMode) ? searchParams.revenueMode : 'day'
-  const now = new Date()
-  const fallbackDate = getVNDateKey(now)
-  const fallbackMonth = getVNMonthKey(now)
-  const fallbackYear = getVNYearKey(now)
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(searchParams.date || '') ? searchParams.date : fallbackDate
-  const month = /^\d{4}-\d{2}$/.test(searchParams.month || '') ? searchParams.month : fallbackMonth
-  const year = /^\d{4}$/.test(searchParams.year || '') ? searchParams.year : fallbackYear
+  const range = ['7d', '30d', '12m'].includes(searchParams.revenueRange) ? searchParams.revenueRange : '30d'
   return {
-    mode,
-    date,
-    month,
-    year,
+    range,
   }
 }
 
@@ -30,33 +20,26 @@ function getRevenueKey(order, mode) {
 }
 
 function buildRevenueSeries(deliveredOrders, filters) {
-  if (filters.mode === 'year') {
-    const year = Number(filters.year)
+  if (filters.range === '12m') {
+    const now = new Date()
     return Array.from({ length: 12 }, (_, index) => {
-      const month = String(index + 1).padStart(2, '0')
-      const key = `${year}-${month}`
+      const date = new Date(now)
+      date.setMonth(date.getMonth() - (11 - index))
+      const key = getVNMonthKey(date)
       const revenue = deliveredOrders.filter(order => getRevenueKey(order, 'month') === key).reduce((sum, order) => sum + Number(order.total || 0), 0)
-      return { label: `T${index + 1}`, key, revenue }
+      const month = key.split('-')[1]
+      return { label: `T${Number(month)}`, key, revenue }
     })
   }
 
-  if (filters.mode === 'month') {
-    const [year, month] = filters.month.split('-').map(Number)
-    const daysInMonth = new Date(year, month, 0).getDate()
-    return Array.from({ length: daysInMonth }, (_, index) => {
-      const day = String(index + 1).padStart(2, '0')
-      const key = `${filters.month}-${day}`
-      const revenue = deliveredOrders.filter(order => getRevenueKey(order, 'day') === key).reduce((sum, order) => sum + Number(order.total || 0), 0)
-      return { label: day, key, revenue }
-    })
-  }
-
-  const selected = new Date(`${filters.date}T12:00:00+07:00`)
-  return Array.from({ length: 7 }, (_, index) => {
-    const date = addDays(selected, index - 6)
+  const days = filters.range === '7d' ? 7 : 30
+  const today = new Date(`${getVNDateKey()}T12:00:00+07:00`)
+  return Array.from({ length: days }, (_, index) => {
+    const date = addDays(today, index - (days - 1))
     const key = getVNDateKey(date)
     const revenue = deliveredOrders.filter(order => getRevenueKey(order, 'day') === key).reduce((sum, order) => sum + Number(order.total || 0), 0)
-    return { label: key.slice(5), key, revenue }
+    const [, month, day] = key.split('-')
+    return { label: `${day}/${month}`, key, revenue }
   })
 }
 
@@ -226,26 +209,26 @@ export default async function DashboardPage({ searchParams }) {
               <div className="absolute inset-0 z-10 grid place-items-center rounded-[26px] bg-white/70 backdrop-blur-[2px]">
                 <div className="rounded-2xl border border-orange-100 bg-white px-5 py-3 text-center shadow-lg">
                   <p className="text-sm font-black text-sole-dark">Chưa có doanh thu trong khoảng này</p>
-                  <p className="mt-1 text-xs font-bold text-gray-400">Thử chọn mốc ngày, tháng hoặc năm khác.</p>
+                  <p className="mt-1 text-xs font-bold text-gray-400">Thử chọn 30 ngày hoặc 12 tháng.</p>
                 </div>
               </div>
             )}
-            <div className="relative flex h-60 items-end gap-2 overflow-x-auto sm:gap-3">
+            <div className="relative flex h-60 items-end gap-2 overflow-x-auto pb-1 sm:gap-3">
               {revenueSeries.map(d => {
-                const height = d.revenue > 0 ? Math.max(10, (d.revenue / maxRevenue) * 100) : 4
+                const height = d.revenue > 0 ? Math.max(22, Math.round((d.revenue / maxRevenue) * 188)) : 8
                 return (
-                  <div key={d.key} className="group flex min-w-10 flex-1 flex-col items-center gap-2">
-                    <div className="relative flex w-full flex-1 items-end">
-                      <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-xl bg-sole-dark px-3 py-1.5 text-[11px] font-black text-white shadow-lg group-hover:block">
+                  <div key={d.key} className="group flex min-w-8 flex-1 flex-col items-center gap-2 sm:min-w-10">
+                    <div className="relative flex h-[190px] w-full items-end">
+                      <div className="absolute bottom-full left-1/2 z-20 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-xl bg-sole-dark px-3 py-1.5 text-[11px] font-black text-white shadow-lg group-hover:block">
                         {formatVND(d.revenue)}
                       </div>
                       <div
                         className={`w-full rounded-t-2xl transition-all duration-300 ${d.revenue > 0 ? 'bg-gradient-to-t from-primary via-orange-400 to-orange-200 shadow-[0_10px_22px_rgba(242,106,46,.22)] group-hover:from-[#ff4f24]' : 'bg-gray-200/80'}`}
-                        style={{ height: `${height}%` }}
+                        style={{ height }}
                         title={formatVND(d.revenue)}
                       />
                     </div>
-                    <span className="text-[11px] font-bold text-gray-400">{d.label}</span>
+                    <span className="whitespace-nowrap text-[10px] font-bold text-gray-400 sm:text-[11px]">{d.label}</span>
                   </div>
                 )
               })}
