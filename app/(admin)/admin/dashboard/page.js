@@ -1,5 +1,6 @@
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { addDays, formatVND, formatVNDateTime, getVNDateKey, getVNMonthKey, getVNYearKey } from '@/lib/utils'
+import RevenueFilterPanel from '@/components/admin/RevenueFilterPanel'
 import Link from 'next/link'
 
 export const metadata = { title: 'Dashboard – Admin SoleMate VN' }
@@ -7,11 +8,17 @@ export const metadata = { title: 'Dashboard – Admin SoleMate VN' }
 function normalizeDashboardFilters(searchParams = {}) {
   const mode = ['day', 'month', 'year'].includes(searchParams.revenueMode) ? searchParams.revenueMode : 'day'
   const now = new Date()
+  const fallbackDate = getVNDateKey(now)
+  const fallbackMonth = getVNMonthKey(now)
+  const fallbackYear = getVNYearKey(now)
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(searchParams.date || '') ? searchParams.date : fallbackDate
+  const month = /^\d{4}-\d{2}$/.test(searchParams.month || '') ? searchParams.month : fallbackMonth
+  const year = /^\d{4}$/.test(searchParams.year || '') ? searchParams.year : fallbackYear
   return {
     mode,
-    date: searchParams.date || getVNDateKey(now),
-    month: searchParams.month || getVNMonthKey(now),
-    year: searchParams.year || getVNYearKey(now),
+    date,
+    month,
+    year,
   }
 }
 
@@ -164,6 +171,7 @@ export default async function DashboardPage({ searchParams }) {
   const params = await searchParams
   const { revenue, pending, statusBreakdown, revenueSeries, revenueFilters, filteredRevenue, lowStock, recentOrders, todayOrders, todayRevenue, todayDeliveredOrders, bestSellers } = await getDashboardData(params || {})
   const maxRevenue = Math.max(...revenueSeries.map(d => d.revenue), 1)
+  const hasRevenueInRange = revenueSeries.some(d => d.revenue > 0)
   const totalOrders = Object.values(statusBreakdown).reduce((a, b) => a + b, 0)
   const visibleLowStock = lowStock.slice(0, 8)
 
@@ -208,40 +216,40 @@ export default async function DashboardPage({ searchParams }) {
             </div>
           </div>
 
-          <form className="relative mb-4 grid gap-3 rounded-[24px] border border-gray-100 bg-gradient-to-r from-white to-orange-50/40 p-3 shadow-inner sm:grid-cols-[auto_minmax(0,1fr)_auto]">
-            <div className="grid grid-cols-3 gap-1 rounded-2xl bg-white p-1 shadow-sm ring-1 ring-gray-100">
-              {[
-                ['day', 'Ngày'],
-                ['month', 'Tháng'],
-                ['year', 'Năm'],
-              ].map(([value, label]) => (
-                <label key={value} className={`cursor-pointer rounded-xl px-3 py-2 text-center text-xs font-black transition ${revenueFilters.mode === value ? 'bg-primary text-white shadow-[0_10px_24px_rgba(242,106,46,.25)]' : 'text-gray-500 hover:bg-orange-50 hover:text-primary'}`}>
-                  <input className="sr-only" type="radio" name="revenueMode" value={value} defaultChecked={revenueFilters.mode === value} />
-                  {label}
-                </label>
-              ))}
-            </div>
-            <div className="grid gap-2 sm:grid-cols-3">
-              <input name="date" type="date" defaultValue={revenueFilters.date} className="h-11 rounded-2xl border border-gray-200 bg-white px-3 text-sm font-bold text-sole-dark outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10" />
-              <input name="month" type="month" defaultValue={revenueFilters.month} className="h-11 rounded-2xl border border-gray-200 bg-white px-3 text-sm font-bold text-sole-dark outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10" />
-              <input name="year" inputMode="numeric" pattern="[0-9]{4}" defaultValue={revenueFilters.year} className="h-11 rounded-2xl border border-gray-200 bg-white px-3 text-sm font-bold text-sole-dark outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10" />
-            </div>
-            <button className="h-11 rounded-2xl bg-sole-dark px-5 text-sm font-black text-white shadow-[0_14px_30px_rgba(15,23,42,.14)] transition hover:-translate-y-0.5 hover:bg-primary">
-              Lọc
-            </button>
-          </form>
+          <RevenueFilterPanel filters={revenueFilters} />
 
-          <div className="relative flex h-56 items-end gap-2 overflow-x-auto rounded-[24px] bg-gradient-to-b from-[#f7f8f9] to-white p-4 sm:gap-3">
-            {revenueSeries.map(d => (
-              <div key={d.key} className="flex min-w-10 flex-1 flex-col items-center gap-2">
-                <div
-                  className="w-full rounded-t-2xl bg-gradient-to-t from-primary via-orange-400 to-orange-200 shadow-[0_10px_22px_rgba(242,106,46,.18)] transition-all hover:opacity-80"
-                  style={{ height: `${(d.revenue / maxRevenue) * 100}%` }}
-                  title={formatVND(d.revenue)}
-                />
-                <span className="text-[11px] font-bold text-gray-400">{d.label}</span>
+          <div className="relative overflow-hidden rounded-[26px] border border-gray-100 bg-gradient-to-b from-[#f7f8f9] to-white p-4 shadow-inner">
+            <div className="pointer-events-none absolute inset-x-4 top-1/2 border-t border-dashed border-gray-200" />
+            <div className="pointer-events-none absolute inset-x-4 top-1/4 border-t border-dashed border-gray-100" />
+            <div className="pointer-events-none absolute inset-x-4 top-3/4 border-t border-dashed border-gray-100" />
+            {!hasRevenueInRange && (
+              <div className="absolute inset-0 z-10 grid place-items-center rounded-[26px] bg-white/70 backdrop-blur-[2px]">
+                <div className="rounded-2xl border border-orange-100 bg-white px-5 py-3 text-center shadow-lg">
+                  <p className="text-sm font-black text-sole-dark">Chưa có doanh thu trong khoảng này</p>
+                  <p className="mt-1 text-xs font-bold text-gray-400">Thử chọn mốc ngày, tháng hoặc năm khác.</p>
+                </div>
               </div>
-            ))}
+            )}
+            <div className="relative flex h-60 items-end gap-2 overflow-x-auto sm:gap-3">
+              {revenueSeries.map(d => {
+                const height = d.revenue > 0 ? Math.max(10, (d.revenue / maxRevenue) * 100) : 4
+                return (
+                  <div key={d.key} className="group flex min-w-10 flex-1 flex-col items-center gap-2">
+                    <div className="relative flex w-full flex-1 items-end">
+                      <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-xl bg-sole-dark px-3 py-1.5 text-[11px] font-black text-white shadow-lg group-hover:block">
+                        {formatVND(d.revenue)}
+                      </div>
+                      <div
+                        className={`w-full rounded-t-2xl transition-all duration-300 ${d.revenue > 0 ? 'bg-gradient-to-t from-primary via-orange-400 to-orange-200 shadow-[0_10px_22px_rgba(242,106,46,.22)] group-hover:from-[#ff4f24]' : 'bg-gray-200/80'}`}
+                        style={{ height: `${height}%` }}
+                        title={formatVND(d.revenue)}
+                      />
+                    </div>
+                    <span className="text-[11px] font-bold text-gray-400">{d.label}</span>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </section>
 
