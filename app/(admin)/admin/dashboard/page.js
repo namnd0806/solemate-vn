@@ -213,18 +213,18 @@ export default async function DashboardPage({ searchParams }) {
                 </div>
               </div>
             )}
-            <div className="relative flex h-60 items-end gap-2 overflow-x-auto overflow-y-visible pb-1 sm:gap-3">
+            <div className="relative flex h-60 items-end gap-2 overflow-x-auto pb-1 sm:gap-3">
               {revenueSeries.map(d => {
                 const height = d.revenue > 0 ? Math.max(22, Math.round((d.revenue / maxRevenue) * 188)) : 8
                 return (
                   <div key={d.key} className="group flex min-w-8 flex-1 flex-col items-center gap-2 sm:min-w-10">
-                    <div className="relative flex h-[190px] w-full items-end">
-                      <div className="pointer-events-none absolute bottom-[calc(100%+10px)] left-1/2 z-50 hidden -translate-x-1/2 whitespace-nowrap rounded-2xl border border-orange-100 bg-white px-3.5 py-2 text-[11px] font-black text-primary shadow-[0_18px_42px_rgba(15,23,42,.16)] ring-1 ring-white group-hover:block">
-                        <span className="absolute -bottom-1 left-1/2 size-2 -translate-x-1/2 rotate-45 border-b border-r border-orange-100 bg-white" />
+                    <div className="relative flex h-[190px] w-full items-end justify-center pt-11">
+                      <div className="pointer-events-none absolute left-1/2 top-1 z-30 hidden -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-2xl border border-orange-100 bg-white px-3.5 py-2 text-[11px] font-black text-primary shadow-[0_18px_42px_rgba(15,23,42,.16)] ring-1 ring-white transition group-hover:flex">
+                        <span className="size-1.5 rounded-full bg-primary shadow-[0_0_0_4px_rgba(242,106,46,.12)]" />
                         {formatVND(d.revenue)}
                       </div>
                       <div
-                        className={`w-full rounded-t-2xl transition-all duration-300 ${d.revenue > 0 ? 'bg-gradient-to-t from-primary via-orange-400 to-orange-200 shadow-[0_10px_22px_rgba(242,106,46,.22)] group-hover:from-[#ff4f24]' : 'bg-gray-200/80'}`}
+                        className={`w-full rounded-t-2xl transition-all duration-300 ${d.revenue > 0 ? 'bg-gradient-to-t from-primary via-orange-400 to-orange-200 shadow-[0_10px_22px_rgba(242,106,46,.22)] group-hover:from-[#ff4f24] group-hover:shadow-[0_14px_28px_rgba(242,106,46,.28)]' : 'bg-gray-200/80'}`}
                         style={{ height }}
                         title={formatVND(d.revenue)}
                       />
