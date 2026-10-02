@@ -188,14 +188,12 @@ export default async function DashboardPage({ searchParams }) {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,.8fr)]">
         <section className="relative overflow-visible rounded-[28px] border border-gray-200 bg-white p-5 shadow-[0_18px_55px_rgba(20,23,28,.07)]">
           <div className="absolute right-8 top-0 h-24 w-80 rounded-full bg-primary/10 blur-3xl" />
-          <div className="relative mb-5 flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="font-black text-sole-dark">Doanh thu đã giao</h2>
-            </div>
-            <div className="relative overflow-hidden rounded-[22px] border border-orange-100 bg-gradient-to-br from-orange-50 via-white to-white px-5 py-3 text-right shadow-[0_14px_34px_rgba(242,106,46,.12)]">
-              <div className="absolute -left-8 -top-10 h-20 w-20 rounded-full bg-primary/15 blur-2xl" />
-              <p className="relative text-[10px] font-black uppercase tracking-[.18em] text-primary/70">Doanh số</p>
-              <p className="relative mt-1 text-2xl font-black tracking-[-.03em] text-primary">{formatVND(filteredRevenue)}</p>
+          <div className="relative mb-5 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-black text-sole-dark">Doanh thu đã giao</h2>
+            <div className="relative overflow-hidden rounded-[24px] border border-orange-100 bg-gradient-to-br from-[#fff7f2] via-white to-white px-5 py-3 text-right shadow-[0_18px_44px_rgba(242,106,46,.14)]">
+              <div className="absolute -left-8 -top-10 h-20 w-20 rounded-full bg-primary/20 blur-2xl" />
+              <div className="absolute -right-10 bottom-0 h-20 w-20 rounded-full bg-orange-200/30 blur-2xl" />
+              <p className="relative text-2xl font-black tracking-[-.04em] text-primary sm:text-3xl">{formatVND(filteredRevenue)}</p>
             </div>
           </div>
 
@@ -207,10 +205,7 @@ export default async function DashboardPage({ searchParams }) {
             <div className="pointer-events-none absolute inset-x-4 top-[74%] border-t border-dashed border-gray-100" />
             {!hasRevenueInRange && (
               <div className="absolute inset-0 z-10 grid place-items-center rounded-[26px] bg-white/70 backdrop-blur-[2px]">
-                <div className="rounded-2xl border border-orange-100 bg-white px-5 py-3 text-center shadow-lg">
-                  <p className="text-sm font-black text-sole-dark">Chưa có doanh thu trong khoảng này</p>
-                  <p className="mt-1 text-xs font-bold text-gray-400">Thử chọn 30 ngày hoặc 12 tháng.</p>
-                </div>
+                <div className="rounded-2xl border border-orange-100 bg-white px-5 py-3 text-sm font-black text-sole-dark shadow-lg">Chưa có doanh thu</div>
               </div>
             )}
             <div className="relative flex h-60 items-end gap-2 overflow-x-auto pb-1 sm:gap-3">
@@ -219,8 +214,8 @@ export default async function DashboardPage({ searchParams }) {
                 return (
                   <div key={d.key} className="group flex min-w-8 flex-1 flex-col items-center gap-2 sm:min-w-10">
                     <div className="relative flex h-[190px] w-full items-end justify-center pt-11">
-                      <div className="pointer-events-none absolute left-1/2 top-1 z-30 hidden -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-2xl border border-orange-100 bg-white px-3.5 py-2 text-[11px] font-black text-primary shadow-[0_18px_42px_rgba(15,23,42,.16)] ring-1 ring-white transition group-hover:flex">
-                        <span className="size-1.5 rounded-full bg-primary shadow-[0_0_0_4px_rgba(242,106,46,.12)]" />
+                      <div className="pointer-events-none absolute left-1/2 top-1 z-30 hidden -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-2xl bg-sole-dark px-3.5 py-2 text-[11px] font-black text-white shadow-[0_18px_42px_rgba(15,23,42,.22)] transition group-hover:flex">
+                        <span className="size-1.5 rounded-full bg-primary shadow-[0_0_0_4px_rgba(242,106,46,.2)]" />
                         {formatVND(d.revenue)}
                       </div>
                       <div
