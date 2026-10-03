@@ -146,6 +146,35 @@ textarea[aria-invalid="true"] {
 .admin-dark .shadow-lg,
 .admin-dark .shadow-2xl { box-shadow: 0 18px 45px rgba(0, 0, 0, .24); }
 
+.admin-density {
+  --admin-zoom: 1;
+  overflow-x: hidden;
+}
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  .admin-density {
+    zoom: .8;
+  }
+}
+
+@media (min-width: 1280px) and (max-width: 1599px) {
+  .admin-density {
+    zoom: .82;
+  }
+}
+
+@media (min-width: 1600px) and (max-width: 1919px) {
+  .admin-density {
+    zoom: .84;
+  }
+}
+
+@media (min-width: 1920px) and (max-width: 2199px) {
+  .admin-density {
+    zoom: .86;
+  }
+}
+
 .section-kicker {
   display: inline-flex;
   align-items: center;
