@@ -158,13 +158,13 @@ function DashboardMetric({ label, value, hint, tone, path, trend }) {
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
-            <p className="min-w-0 break-words text-xl font-black leading-tight tracking-tight text-sole-dark sm:text-2xl 2xl:text-3xl">{value}</p>
-            <span className={`hidden rounded-full px-3 py-1 text-xs font-black shadow-sm sm:inline-flex ${iconTone[tone]}`}>{trend}</span>
+            <p className="min-w-0 whitespace-nowrap text-[clamp(1.35rem,1.55vw,1.9rem)] font-black leading-none tracking-[-.03em] text-sole-dark">{value}</p>
+            <span className={`hidden rounded-full px-3 py-1 text-xs font-black shadow-sm [@media(min-width:2100px)]:inline-flex ${iconTone[tone]}`}>{trend}</span>
           </div>
           <p className="mt-3 text-base font-black text-sole-dark">{label}</p>
           <p className="mt-1 text-xs font-bold text-gray-400">{hint}</p>
         </div>
-        <div className="hidden items-end gap-1 self-end 2xl:flex">
+        <div className="hidden items-end gap-1 self-end [@media(min-width:2100px)]:flex">
           {[16, 28, 20, 38].map((height, index) => <span key={index} className={`w-2 rounded-full ${barTone[tone]}`} style={{ height }} />)}
         </div>
       </div>
@@ -203,7 +203,7 @@ export default async function DashboardPage({ searchParams }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 [@media(min-width:2100px)]:grid-cols-4">
         {[
           { label: 'Tổng doanh thu đã giao', value: formatVND(revenue), hint: `Hôm nay ${todayDeliveredOrders} đơn / ${formatVND(todayRevenue)}`, tone: 'green', trend: 'DELIVERED', path: 'M5 12h14M12 5v14' },
           { label: 'Đơn cần xử lý', value: pending, hint: 'Chờ xác nhận, đóng gói', tone: 'orange', trend: pending ? `+${pending}` : '0', path: 'M12 6v6l4 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z' },
