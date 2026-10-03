@@ -21,7 +21,7 @@ export default async function AdminLayout({ children }) {
   }
 
   return (
-    <div className="admin-shell min-h-screen bg-[#f7f8f9] transition-colors">
+    <div className="admin-shell admin-density min-h-screen bg-[#f7f8f9] transition-colors">
       <aside className="admin-sidebar fixed inset-y-0 left-0 z-50 w-[64px] border-r border-white/10 bg-[#111315] sm:w-[86px] md:w-[276px]">
         <AdminNav />
       </aside>
