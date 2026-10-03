@@ -5,6 +5,8 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 const RANGE_OPTIONS = [
   { value: '7d', label: '7 ngày' },
   { value: '30d', label: '30 ngày' },
+  { value: '3m', label: '3 tháng' },
+  { value: '6m', label: '6 tháng' },
   { value: '12m', label: '12 tháng' },
 ]
 
@@ -26,7 +28,7 @@ export default function RevenueFilterPanel({ filters }) {
 
   return (
     <div className="mb-4 flex justify-end">
-      <div className="grid w-full grid-cols-3 gap-1 rounded-[20px] border border-gray-100 bg-white p-1 shadow-[0_14px_34px_rgba(15,23,42,.06)] sm:w-auto sm:min-w-[330px]">
+      <div className="grid w-full grid-cols-2 gap-1 rounded-[20px] border border-gray-100 bg-white p-1 shadow-[0_14px_34px_rgba(15,23,42,.06)] sm:w-auto sm:min-w-[460px] sm:grid-cols-5">
         {RANGE_OPTIONS.map(option => {
           const active = activeRange === option.value
           return (
