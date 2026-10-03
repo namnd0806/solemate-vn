@@ -148,29 +148,30 @@ textarea[aria-invalid="true"] {
 
 .admin-density {
   --admin-zoom: 1;
+  overflow-x: hidden;
 }
 
 @media (min-width: 768px) and (max-width: 1279px) {
   .admin-density {
-    width: calc(100% / .8);
-    min-height: calc(100vh / .8);
     zoom: .8;
   }
 }
 
 @media (min-width: 1280px) and (max-width: 1599px) {
   .admin-density {
-    width: calc(100% / .84);
-    min-height: calc(100vh / .84);
+    zoom: .82;
+  }
+}
+
+@media (min-width: 1600px) and (max-width: 1919px) {
+  .admin-density {
     zoom: .84;
   }
 }
 
-@media (min-width: 1600px) and (max-width: 2099px) {
+@media (min-width: 1920px) and (max-width: 2199px) {
   .admin-density {
-    width: calc(100% / .9);
-    min-height: calc(100vh / .9);
-    zoom: .9;
+    zoom: .86;
   }
 }
 
