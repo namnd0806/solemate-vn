@@ -6,7 +6,7 @@ import Link from 'next/link'
 export const metadata = { title: 'Dashboard – Admin SoleMate VN' }
 
 function normalizeDashboardFilters(searchParams = {}) {
-  const range = ['7d', '30d', '12m'].includes(searchParams.revenueRange) ? searchParams.revenueRange : '30d'
+  const range = ['7d', '30d', '3m', '6m', '12m'].includes(searchParams.revenueRange) ? searchParams.revenueRange : '30d'
   return {
     range,
   }
@@ -20,15 +20,17 @@ function getRevenueKey(order, mode) {
 }
 
 function buildRevenueSeries(deliveredOrders, filters) {
-  if (filters.range === '12m') {
+  if (['3m', '6m', '12m'].includes(filters.range)) {
+    const months = filters.range === '3m' ? 3 : filters.range === '6m' ? 6 : 12
     const now = new Date()
-    return Array.from({ length: 12 }, (_, index) => {
+    return Array.from({ length: months }, (_, index) => {
       const date = new Date(now)
-      date.setMonth(date.getMonth() - (11 - index))
+      date.setMonth(date.getMonth() - (months - 1 - index))
       const key = getVNMonthKey(date)
-      const revenue = deliveredOrders.filter(order => getRevenueKey(order, 'month') === key).reduce((sum, order) => sum + Number(order.total || 0), 0)
+      const orders = deliveredOrders.filter(order => getRevenueKey(order, 'month') === key)
+      const revenue = orders.reduce((sum, order) => sum + Number(order.total || 0), 0)
       const month = key.split('-')[1]
-      return { label: `T${Number(month)}`, key, revenue }
+      return { label: `T${Number(month)}`, key, revenue, orders: orders.length }
     })
   }
 
@@ -37,10 +39,21 @@ function buildRevenueSeries(deliveredOrders, filters) {
   return Array.from({ length: days }, (_, index) => {
     const date = addDays(today, index - (days - 1))
     const key = getVNDateKey(date)
-    const revenue = deliveredOrders.filter(order => getRevenueKey(order, 'day') === key).reduce((sum, order) => sum + Number(order.total || 0), 0)
+    const orders = deliveredOrders.filter(order => getRevenueKey(order, 'day') === key)
+    const revenue = orders.reduce((sum, order) => sum + Number(order.total || 0), 0)
     const [, month, day] = key.split('-')
-    return { label: `${day}/${month}`, key, revenue }
+    return { label: `${day}/${month}`, key, revenue, orders: orders.length }
   })
+}
+
+function formatRevenuePointLabel(point) {
+  if (!point?.key) return point?.label || ''
+  if (point.key.length === 7) {
+    const [year, month] = point.key.split('-')
+    return `${month}/${year}`
+  }
+  const [year, month, day] = point.key.split('-')
+  return `${day}/${month}/${year}`
 }
 
 async function getDashboardData(searchParams) {
@@ -214,9 +227,13 @@ export default async function DashboardPage({ searchParams }) {
                 return (
                   <div key={d.key} className="group flex min-w-8 flex-1 flex-col items-center gap-2 sm:min-w-10">
                     <div className="relative flex h-[190px] w-full items-end justify-center pt-11">
-                      <div className="pointer-events-none absolute left-1/2 top-1 z-30 hidden -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-2xl bg-sole-dark px-3.5 py-2 text-[11px] font-black text-white shadow-[0_18px_42px_rgba(15,23,42,.22)] transition group-hover:flex">
-                        <span className="size-1.5 rounded-full bg-primary shadow-[0_0_0_4px_rgba(242,106,46,.2)]" />
-                        {formatVND(d.revenue)}
+                      <div className="pointer-events-none absolute left-1/2 top-1 z-30 hidden min-w-40 -translate-x-1/2 rounded-2xl bg-sole-dark px-3.5 py-2 text-[11px] font-black text-white shadow-[0_18px_42px_rgba(15,23,42,.22)] transition group-hover:block">
+                        <p className="text-white/60">{formatRevenuePointLabel(d)}</p>
+                        <p className="mt-1 flex items-center gap-1.5 whitespace-nowrap">
+                          <span className="size-1.5 rounded-full bg-primary shadow-[0_0_0_4px_rgba(242,106,46,.2)]" />
+                          {formatVND(d.revenue)}
+                        </p>
+                        <p className="mt-0.5 text-white/60">Số đơn: <span className="text-white">{d.orders || 0}</span></p>
                       </div>
                       <div
                         className={`w-full rounded-t-2xl transition-all duration-300 ${d.revenue > 0 ? 'bg-gradient-to-t from-primary via-orange-400 to-orange-200 shadow-[0_10px_22px_rgba(242,106,46,.22)] group-hover:from-[#ff4f24] group-hover:shadow-[0_14px_28px_rgba(242,106,46,.28)]' : 'bg-gray-200/80'}`}
