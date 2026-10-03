@@ -1,17 +1,14 @@
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { addDays, formatVND, formatVNDateTime, getVNDateKey, getVNMonthKey, getVNYearKey } from '@/lib/utils'
+import RevenueFilterPanel from '@/components/admin/RevenueFilterPanel'
 import Link from 'next/link'
 
 export const metadata = { title: 'Dashboard – Admin SoleMate VN' }
 
 function normalizeDashboardFilters(searchParams = {}) {
-  const mode = ['day', 'month', 'year'].includes(searchParams.revenueMode) ? searchParams.revenueMode : 'day'
-  const now = new Date()
+  const range = ['7d', '30d', '12m'].includes(searchParams.revenueRange) ? searchParams.revenueRange : '30d'
   return {
-    mode,
-    date: searchParams.date || getVNDateKey(now),
-    month: searchParams.month || getVNMonthKey(now),
-    year: searchParams.year || getVNYearKey(now),
+    range,
   }
 }
 
@@ -23,33 +20,26 @@ function getRevenueKey(order, mode) {
 }
 
 function buildRevenueSeries(deliveredOrders, filters) {
-  if (filters.mode === 'year') {
-    const year = Number(filters.year)
+  if (filters.range === '12m') {
+    const now = new Date()
     return Array.from({ length: 12 }, (_, index) => {
-      const month = String(index + 1).padStart(2, '0')
-      const key = `${year}-${month}`
+      const date = new Date(now)
+      date.setMonth(date.getMonth() - (11 - index))
+      const key = getVNMonthKey(date)
       const revenue = deliveredOrders.filter(order => getRevenueKey(order, 'month') === key).reduce((sum, order) => sum + Number(order.total || 0), 0)
-      return { label: `T${index + 1}`, key, revenue }
+      const month = key.split('-')[1]
+      return { label: `T${Number(month)}`, key, revenue }
     })
   }
 
-  if (filters.mode === 'month') {
-    const [year, month] = filters.month.split('-').map(Number)
-    const daysInMonth = new Date(year, month, 0).getDate()
-    return Array.from({ length: daysInMonth }, (_, index) => {
-      const day = String(index + 1).padStart(2, '0')
-      const key = `${filters.month}-${day}`
-      const revenue = deliveredOrders.filter(order => getRevenueKey(order, 'day') === key).reduce((sum, order) => sum + Number(order.total || 0), 0)
-      return { label: day, key, revenue }
-    })
-  }
-
-  const selected = new Date(`${filters.date}T12:00:00+07:00`)
-  return Array.from({ length: 7 }, (_, index) => {
-    const date = addDays(selected, index - 6)
+  const days = filters.range === '7d' ? 7 : 30
+  const today = new Date(`${getVNDateKey()}T12:00:00+07:00`)
+  return Array.from({ length: days }, (_, index) => {
+    const date = addDays(today, index - (days - 1))
     const key = getVNDateKey(date)
     const revenue = deliveredOrders.filter(order => getRevenueKey(order, 'day') === key).reduce((sum, order) => sum + Number(order.total || 0), 0)
-    return { label: key.slice(5), key, revenue }
+    const [, month, day] = key.split('-')
+    return { label: `${day}/${month}`, key, revenue }
   })
 }
 
@@ -164,6 +154,7 @@ export default async function DashboardPage({ searchParams }) {
   const params = await searchParams
   const { revenue, pending, statusBreakdown, revenueSeries, revenueFilters, filteredRevenue, lowStock, recentOrders, todayOrders, todayRevenue, todayDeliveredOrders, bestSellers } = await getDashboardData(params || {})
   const maxRevenue = Math.max(...revenueSeries.map(d => d.revenue), 1)
+  const hasRevenueInRange = revenueSeries.some(d => d.revenue > 0)
   const totalOrders = Object.values(statusBreakdown).reduce((a, b) => a + b, 0)
   const visibleLowStock = lowStock.slice(0, 8)
 
@@ -195,53 +186,49 @@ export default async function DashboardPage({ searchParams }) {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,.8fr)]">
-        <section className="relative overflow-hidden rounded-[28px] border border-gray-200 bg-white p-5 shadow-[0_18px_55px_rgba(20,23,28,.07)]">
+        <section className="relative overflow-visible rounded-[28px] border border-gray-200 bg-white p-5 shadow-[0_18px_55px_rgba(20,23,28,.07)]">
           <div className="absolute right-8 top-0 h-24 w-80 rounded-full bg-primary/10 blur-3xl" />
-          <div className="relative mb-5 flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="font-black text-sole-dark">Doanh thu đã giao</h2>
-              <p className="mt-1 text-xs text-gray-400">Chỉ tính đơn đã giao và đã thanh toán, theo múi giờ Việt Nam.</p>
-            </div>
-            <div className="rounded-2xl border border-orange-100 bg-orange-50 px-4 py-2 text-right shadow-sm">
-              <p className="text-[10px] font-black uppercase tracking-[.16em] text-primary/70">Theo bộ lọc</p>
-              <p className="mt-1 text-lg font-black text-primary">{formatVND(filteredRevenue)}</p>
+          <div className="relative mb-5 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-black text-sole-dark">Doanh thu đã giao</h2>
+            <div className="relative overflow-hidden rounded-[24px] border border-orange-100 bg-gradient-to-br from-[#fff7f2] via-white to-white px-5 py-3 text-right shadow-[0_18px_44px_rgba(242,106,46,.14)]">
+              <div className="absolute -left-8 -top-10 h-20 w-20 rounded-full bg-primary/20 blur-2xl" />
+              <div className="absolute -right-10 bottom-0 h-20 w-20 rounded-full bg-orange-200/30 blur-2xl" />
+              <p className="relative text-2xl font-black tracking-[-.04em] text-primary sm:text-3xl">{formatVND(filteredRevenue)}</p>
             </div>
           </div>
 
-          <form className="relative mb-4 grid gap-3 rounded-[24px] border border-gray-100 bg-gradient-to-r from-white to-orange-50/40 p-3 shadow-inner sm:grid-cols-[auto_minmax(0,1fr)_auto]">
-            <div className="grid grid-cols-3 gap-1 rounded-2xl bg-white p-1 shadow-sm ring-1 ring-gray-100">
-              {[
-                ['day', 'Ngày'],
-                ['month', 'Tháng'],
-                ['year', 'Năm'],
-              ].map(([value, label]) => (
-                <label key={value} className={`cursor-pointer rounded-xl px-3 py-2 text-center text-xs font-black transition ${revenueFilters.mode === value ? 'bg-primary text-white shadow-[0_10px_24px_rgba(242,106,46,.25)]' : 'text-gray-500 hover:bg-orange-50 hover:text-primary'}`}>
-                  <input className="sr-only" type="radio" name="revenueMode" value={value} defaultChecked={revenueFilters.mode === value} />
-                  {label}
-                </label>
-              ))}
-            </div>
-            <div className="grid gap-2 sm:grid-cols-3">
-              <input name="date" type="date" defaultValue={revenueFilters.date} className="h-11 rounded-2xl border border-gray-200 bg-white px-3 text-sm font-bold text-sole-dark outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10" />
-              <input name="month" type="month" defaultValue={revenueFilters.month} className="h-11 rounded-2xl border border-gray-200 bg-white px-3 text-sm font-bold text-sole-dark outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10" />
-              <input name="year" inputMode="numeric" pattern="[0-9]{4}" defaultValue={revenueFilters.year} className="h-11 rounded-2xl border border-gray-200 bg-white px-3 text-sm font-bold text-sole-dark outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10" />
-            </div>
-            <button className="h-11 rounded-2xl bg-sole-dark px-5 text-sm font-black text-white shadow-[0_14px_30px_rgba(15,23,42,.14)] transition hover:-translate-y-0.5 hover:bg-primary">
-              Lọc
-            </button>
-          </form>
+          <RevenueFilterPanel filters={revenueFilters} />
 
-          <div className="relative flex h-56 items-end gap-2 overflow-x-auto rounded-[24px] bg-gradient-to-b from-[#f7f8f9] to-white p-4 sm:gap-3">
-            {revenueSeries.map(d => (
-              <div key={d.key} className="flex min-w-10 flex-1 flex-col items-center gap-2">
-                <div
-                  className="w-full rounded-t-2xl bg-gradient-to-t from-primary via-orange-400 to-orange-200 shadow-[0_10px_22px_rgba(242,106,46,.18)] transition-all hover:opacity-80"
-                  style={{ height: `${(d.revenue / maxRevenue) * 100}%` }}
-                  title={formatVND(d.revenue)}
-                />
-                <span className="text-[11px] font-bold text-gray-400">{d.label}</span>
+          <div className="relative overflow-visible rounded-[26px] border border-gray-100 bg-gradient-to-b from-[#f7f8f9] to-white p-4 pt-9 shadow-inner">
+            <div className="pointer-events-none absolute inset-x-4 top-[54%] border-t border-dashed border-gray-200" />
+            <div className="pointer-events-none absolute inset-x-4 top-[34%] border-t border-dashed border-gray-100" />
+            <div className="pointer-events-none absolute inset-x-4 top-[74%] border-t border-dashed border-gray-100" />
+            {!hasRevenueInRange && (
+              <div className="absolute inset-0 z-10 grid place-items-center rounded-[26px] bg-white/70 backdrop-blur-[2px]">
+                <div className="rounded-2xl border border-orange-100 bg-white px-5 py-3 text-sm font-black text-sole-dark shadow-lg">Chưa có doanh thu</div>
               </div>
-            ))}
+            )}
+            <div className="relative flex h-60 items-end gap-2 overflow-x-auto pb-1 sm:gap-3">
+              {revenueSeries.map(d => {
+                const height = d.revenue > 0 ? Math.max(22, Math.round((d.revenue / maxRevenue) * 188)) : 8
+                return (
+                  <div key={d.key} className="group flex min-w-8 flex-1 flex-col items-center gap-2 sm:min-w-10">
+                    <div className="relative flex h-[190px] w-full items-end justify-center pt-11">
+                      <div className="pointer-events-none absolute left-1/2 top-1 z-30 hidden -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-2xl bg-sole-dark px-3.5 py-2 text-[11px] font-black text-white shadow-[0_18px_42px_rgba(15,23,42,.22)] transition group-hover:flex">
+                        <span className="size-1.5 rounded-full bg-primary shadow-[0_0_0_4px_rgba(242,106,46,.2)]" />
+                        {formatVND(d.revenue)}
+                      </div>
+                      <div
+                        className={`w-full rounded-t-2xl transition-all duration-300 ${d.revenue > 0 ? 'bg-gradient-to-t from-primary via-orange-400 to-orange-200 shadow-[0_10px_22px_rgba(242,106,46,.22)] group-hover:from-[#ff4f24] group-hover:shadow-[0_14px_28px_rgba(242,106,46,.28)]' : 'bg-gray-200/80'}`}
+                        style={{ height }}
+                        title={formatVND(d.revenue)}
+                      />
+                    </div>
+                    <span className="whitespace-nowrap text-[10px] font-bold text-gray-400 sm:text-[11px]">{d.label}</span>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </section>
 
