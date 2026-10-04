@@ -46,6 +46,15 @@ function buildRevenueSeries(deliveredOrders, filters) {
   })
 }
 
+function formatCompactVND(value) {
+  if (!value) return '0'
+  if (value >= 1000000) {
+    const compact = value / 1000000
+    return `${Number.isInteger(compact) ? compact : compact.toFixed(1)}M`
+  }
+  return `${Math.round(value / 1000)}K`
+}
+
 function formatRevenuePointLabel(point) {
   if (!point?.key) return point?.label || ''
   if (point.key.length === 7) {
@@ -167,6 +176,11 @@ export default async function DashboardPage({ searchParams }) {
   const params = await searchParams
   const { revenue, pending, statusBreakdown, revenueSeries, revenueFilters, filteredRevenue, lowStock, recentOrders, todayOrders, todayRevenue, todayDeliveredOrders, bestSellers } = await getDashboardData(params || {})
   const maxRevenue = Math.max(...revenueSeries.map(d => d.revenue), 1)
+  const chartMax = Math.max(500000, Math.ceil(maxRevenue / 500000) * 500000)
+  const yAxisTicks = [chartMax, chartMax * 0.75, chartMax * 0.5, chartMax * 0.25, 0]
+  const dateRangeLabel = revenueSeries.length
+    ? `${formatRevenuePointLabel(revenueSeries[0])} - ${formatRevenuePointLabel(revenueSeries[revenueSeries.length - 1])}`
+    : ''
   const hasRevenueInRange = revenueSeries.some(d => d.revenue > 0)
   const totalOrders = Object.values(statusBreakdown).reduce((a, b) => a + b, 0)
   const visibleLowStock = lowStock.slice(0, 8)
@@ -199,52 +213,62 @@ export default async function DashboardPage({ searchParams }) {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,.8fr)]">
-        <section className="relative overflow-visible rounded-[28px] border border-gray-200 bg-white p-5 shadow-[0_18px_55px_rgba(20,23,28,.07)]">
-          <div className="absolute right-8 top-0 h-24 w-80 rounded-full bg-primary/10 blur-3xl" />
-          <div className="relative mb-5 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-black text-sole-dark">Doanh thu đã giao</h2>
-            <div className="relative overflow-hidden rounded-[24px] border border-orange-100 bg-gradient-to-br from-[#fff7f2] via-white to-white px-5 py-3 text-right shadow-[0_18px_44px_rgba(242,106,46,.14)]">
-              <div className="absolute -left-8 -top-10 h-20 w-20 rounded-full bg-primary/20 blur-2xl" />
-              <div className="absolute -right-10 bottom-0 h-20 w-20 rounded-full bg-orange-200/30 blur-2xl" />
-              <p className="relative text-2xl font-black tracking-[-.04em] text-primary sm:text-3xl">{formatVND(filteredRevenue)}</p>
+        <section className="relative overflow-hidden rounded-[28px] border border-gray-200 bg-white p-4 shadow-[0_18px_55px_rgba(20,23,28,.07)] sm:p-6">
+          <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
+          <div className="relative mb-6 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,420px)] xl:items-center">
+            <div className="flex min-w-0 items-center gap-4">
+              <span className="grid size-14 shrink-0 place-items-center rounded-[22px] border border-orange-100 bg-gradient-to-br from-orange-50 to-white text-primary shadow-inner sm:size-16">
+                <svg viewBox="0 0 24 24" className="size-8" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M5 20V12m7 8V5m7 15v-9" /><path d="M4 20h16" /></svg>
+              </span>
+              <div className="min-w-0">
+                <h2 className="text-2xl font-black tracking-[-.04em] text-sole-dark sm:text-3xl">Doanh thu đã giao</h2>
+                <p className="mt-1 text-sm font-bold text-slate-400">Tổng doanh thu từ các đơn hàng đã giao thành công</p>
+              </div>
+            </div>
+            <div className="relative min-w-0 overflow-hidden rounded-[24px] border border-orange-100 bg-gradient-to-br from-[#fff7f2] via-white to-white p-4 shadow-[0_18px_44px_rgba(242,106,46,.12)] sm:p-5">
+              <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-primary/10 blur-2xl" />
+              <p className="relative text-sm font-bold text-orange-900/70">Tổng doanh thu</p>
+              <p className="relative mt-1 break-words text-[clamp(1.7rem,5vw,2.65rem)] font-black leading-none tracking-[-.05em] text-primary">{formatVND(filteredRevenue)}</p>
             </div>
           </div>
 
-          <RevenueFilterPanel filters={revenueFilters} />
+          <RevenueFilterPanel filters={revenueFilters} dateRangeLabel={dateRangeLabel} />
 
-          <div className="relative overflow-visible rounded-[26px] border border-gray-100 bg-gradient-to-b from-[#f7f8f9] to-white p-4 pt-9 shadow-inner">
-            <div className="pointer-events-none absolute inset-x-4 top-[54%] border-t border-dashed border-gray-200" />
-            <div className="pointer-events-none absolute inset-x-4 top-[34%] border-t border-dashed border-gray-100" />
-            <div className="pointer-events-none absolute inset-x-4 top-[74%] border-t border-dashed border-gray-100" />
+          <div className="relative overflow-hidden rounded-[26px] border border-gray-100 bg-gradient-to-b from-[#f8f9fb] to-white p-3 shadow-inner sm:p-5">
             {!hasRevenueInRange && (
               <div className="absolute inset-0 z-10 grid place-items-center rounded-[26px] bg-white/70 backdrop-blur-[2px]">
                 <div className="rounded-2xl border border-orange-100 bg-white px-5 py-3 text-sm font-black text-sole-dark shadow-lg">Chưa có doanh thu</div>
               </div>
             )}
-            <div className="relative flex h-60 items-end gap-2 overflow-x-auto pb-1 sm:gap-3">
-              {revenueSeries.map(d => {
-                const height = d.revenue > 0 ? Math.max(22, Math.round((d.revenue / maxRevenue) * 188)) : 8
-                return (
-                  <div key={d.key} className="group flex min-w-8 flex-1 flex-col items-center gap-2 sm:min-w-10">
-                    <div className="relative flex h-[190px] w-full items-end justify-center pt-11">
-                      <div className="pointer-events-none absolute left-1/2 top-1 z-30 hidden min-w-40 -translate-x-1/2 rounded-2xl bg-sole-dark px-3.5 py-2 text-[11px] font-black text-white shadow-[0_18px_42px_rgba(15,23,42,.22)] transition group-hover:block">
-                        <p className="text-white/60">{formatRevenuePointLabel(d)}</p>
-                        <p className="mt-1 flex items-center gap-1.5 whitespace-nowrap">
-                          <span className="size-1.5 rounded-full bg-primary shadow-[0_0_0_4px_rgba(242,106,46,.2)]" />
-                          {formatVND(d.revenue)}
-                        </p>
-                        <p className="mt-0.5 text-white/60">Số đơn: <span className="text-white">{d.orders || 0}</span></p>
-                      </div>
-                      <div
-                        className={`w-full rounded-t-2xl transition-all duration-300 ${d.revenue > 0 ? 'bg-gradient-to-t from-primary via-orange-400 to-orange-200 shadow-[0_10px_22px_rgba(242,106,46,.22)] group-hover:from-[#ff4f24] group-hover:shadow-[0_14px_28px_rgba(242,106,46,.28)]' : 'bg-gray-200/80'}`}
-                        style={{ height }}
-                        title={formatVND(d.revenue)}
-                      />
-                    </div>
-                    <span className="whitespace-nowrap text-[10px] font-bold text-gray-400 sm:text-[11px]">{d.label}</span>
+            <div className="overflow-x-auto pb-2">
+              <div className="grid min-w-[680px] grid-cols-[58px_minmax(0,1fr)] gap-3">
+                <div className="grid h-[300px] grid-rows-5 pt-2 text-right text-xs font-black text-slate-400">
+                  {yAxisTicks.map(tick => <span key={tick}>{formatCompactVND(tick)}</span>)}
+                </div>
+                <div className="relative h-[300px]">
+                  <div className="pointer-events-none absolute inset-x-0 top-2 h-[240px]">
+                    {[0, 1, 2, 3, 4].map(index => <div key={index} className="absolute inset-x-0 border-t border-dashed border-slate-200" style={{ top: `${index * 25}%` }} />)}
                   </div>
-                )
-              })}
+                  <div className="absolute inset-x-0 bottom-[35px] top-2 flex items-end gap-3">
+                    {revenueSeries.map(d => {
+                      const height = d.revenue > 0 ? Math.max(18, Math.round((d.revenue / chartMax) * 240)) : 6
+                      return (
+                        <div key={d.key} className="group relative flex min-w-8 flex-1 flex-col items-center">
+                          <div className="relative flex h-[240px] w-full items-end justify-center">
+                            <div className="pointer-events-none absolute left-1/2 top-1 z-30 hidden w-max min-w-44 -translate-x-1/2 rounded-2xl border border-gray-100 bg-white p-3 text-xs shadow-[0_18px_45px_rgba(15,23,42,.16)] group-hover:block">
+                              <p className="font-bold text-slate-500">{formatRevenuePointLabel(d)}</p>
+                              <p className="mt-2 flex items-center gap-2 font-bold text-slate-500"><span className="size-2 rounded-full bg-primary" />Doanh thu: <b className="text-sole-dark">{formatVND(d.revenue)}</b></p>
+                              <p className="mt-1 font-bold text-slate-500">Số đơn: <b className="text-sole-dark">{d.orders || 0}</b></p>
+                            </div>
+                            <div className="w-full max-w-10 rounded-t-lg bg-gradient-to-t from-primary via-orange-400 to-orange-200 shadow-[0_12px_24px_rgba(242,106,46,.2)] transition duration-300 group-hover:from-[#ff4f24] group-hover:shadow-[0_18px_34px_rgba(242,106,46,.3)]" style={{ height }} title={formatVND(d.revenue)} />
+                          </div>
+                          <span className="absolute top-[252px] whitespace-nowrap text-[11px] font-black text-slate-400">{d.label}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
