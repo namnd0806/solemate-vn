@@ -130,7 +130,18 @@ const STATUS_TONE = {
   CANCELLED: 'bg-red-50 text-red-600 border-red-100',
 }
 
-function DashboardMetric({ label, value, hint, tone, path, trend }) {
+function ResponsiveMoney({ value, className = '', unitClassName = '' }) {
+  const [amount, unit = 'đ'] = formatVND(value).split(' ')
+
+  return (
+    <span className={`inline-flex max-w-full flex-wrap items-baseline gap-x-1 gap-y-0.5 leading-[.92] ${className}`}>
+      <span className="min-w-0 whitespace-nowrap">{amount}</span>
+      <span className={`whitespace-nowrap ${unitClassName}`}>{unit}</span>
+    </span>
+  )
+}
+
+function DashboardMetric({ label, value, hint, tone, path, trend, money = false }) {
   const glow = {
     green: 'from-emerald-50 to-white',
     orange: 'from-orange-50 to-white',
@@ -158,11 +169,19 @@ function DashboardMetric({ label, value, hint, tone, path, trend }) {
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
-            <p className="min-w-0 truncate whitespace-nowrap text-xl font-black leading-none tracking-tight text-sole-dark sm:text-2xl 2xl:text-3xl">{value}</p>
+            {money ? (
+              <ResponsiveMoney
+                value={value}
+                className="min-w-0 text-[clamp(1.25rem,2.2vw,2rem)] font-black tracking-[-.045em] text-sole-dark"
+                unitClassName="text-[.82em]"
+              />
+            ) : (
+              <p className="min-w-0 break-words text-xl font-black leading-none tracking-tight text-sole-dark sm:text-2xl 2xl:text-3xl">{value}</p>
+            )}
             <span className={`hidden rounded-full px-3 py-1 text-xs font-black shadow-sm sm:inline-flex ${iconTone[tone]}`}>{trend}</span>
           </div>
-          <p className="mt-3 text-base font-black text-sole-dark">{label}</p>
-          <p className="mt-1 text-xs font-bold text-gray-400">{hint}</p>
+          <p className="mt-3 text-sm font-black text-sole-dark sm:text-base">{label}</p>
+          <p className="mt-1 break-words text-xs font-bold text-gray-400">{hint}</p>
         </div>
         <div className="hidden items-end gap-1 self-end 2xl:flex">
           {[16, 28, 20, 38].map((height, index) => <span key={index} className={`w-2 rounded-full ${barTone[tone]}`} style={{ height }} />)}
@@ -205,7 +224,7 @@ export default async function DashboardPage({ searchParams }) {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-4">
         {[
-          { label: 'Tổng doanh thu đã giao', value: formatVND(revenue), hint: `Hôm nay ${todayDeliveredOrders} đơn / ${formatVND(todayRevenue)}`, tone: 'green', trend: 'DELIVERED', path: 'M5 12h14M12 5v14' },
+          { label: 'Tổng doanh thu đã giao', value: revenue, money: true, hint: `Hôm nay ${todayDeliveredOrders} đơn / ${formatVND(todayRevenue)}`, tone: 'green', trend: 'DELIVERED', path: 'M5 12h14M12 5v14' },
           { label: 'Đơn cần xử lý', value: pending, hint: 'Chờ xác nhận, đóng gói', tone: 'orange', trend: pending ? `+${pending}` : '0', path: 'M12 6v6l4 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z' },
           { label: 'SKU tồn thấp', value: lowStock.length, hint: 'Cần kiểm tra nhập hàng', tone: 'red', trend: lowStock.length ? `+${lowStock.length}` : '0%', path: 'M12 9v4m0 4h.01M10.3 4.3 2.8 17.5A2 2 0 0 0 4.5 20h15a2 2 0 0 0 1.7-2.5L13.7 4.3a2 2 0 0 0-3.4 0Z' },
           { label: 'Tổng đơn hàng', value: totalOrders, hint: `Hôm nay ${todayOrders} đơn`, tone: 'blue', trend: '+18%', path: 'M4 7 12 3l8 4-8 4-8-4Zm0 0v10l8 4 8-4V7M12 11v10' },
@@ -215,7 +234,7 @@ export default async function DashboardPage({ searchParams }) {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,.8fr)]">
         <section className="relative overflow-hidden rounded-[28px] border border-gray-200 bg-white p-4 shadow-[0_18px_55px_rgba(20,23,28,.07)] sm:p-6">
           <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
-          <div className="relative mb-6 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,420px)] xl:items-center">
+          <div className="relative mb-6 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(250px,400px)] xl:items-center">
             <div className="flex min-w-0 items-center gap-4">
               <span className="grid size-14 shrink-0 place-items-center rounded-[22px] border border-orange-100 bg-gradient-to-br from-orange-50 to-white text-primary shadow-inner sm:size-16">
                 <svg viewBox="0 0 24 24" className="size-8" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M5 20V12m7 8V5m7 15v-9" /><path d="M4 20h16" /></svg>
@@ -228,7 +247,11 @@ export default async function DashboardPage({ searchParams }) {
             <div className="relative min-w-0 overflow-hidden rounded-[24px] border border-orange-100 bg-gradient-to-br from-[#fff7f2] via-white to-white p-4 shadow-[0_18px_44px_rgba(242,106,46,.12)] sm:p-5">
               <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-primary/10 blur-2xl" />
               <p className="relative text-sm font-bold text-orange-900/70">Tổng doanh thu</p>
-              <p className="relative mt-1 break-words text-[clamp(1.7rem,5vw,2.65rem)] font-black leading-none tracking-[-.05em] text-primary">{formatVND(filteredRevenue)}</p>
+              <ResponsiveMoney
+                value={filteredRevenue}
+                className="relative mt-1 text-[clamp(1.45rem,4vw,2.45rem)] font-black tracking-[-.055em] text-primary"
+                unitClassName="text-[.78em]"
+              />
             </div>
           </div>
 
