@@ -142,6 +142,16 @@ export default function AdminOrdersPage() {
     setInternalNote(order.internal_note || '')
   }
 
+  function toggleOrderDetail(order) {
+    if (selected?.id === order.id) {
+      setSelected(null)
+      setShipping({ carrier: '', tracking: '' })
+      setInternalNote('')
+      return
+    }
+    selectOrder(order)
+  }
+
   async function reloadSelected(orderId) {
     const res = await fetch(`/api/orders/${orderId}`)
     const data = await res.json()
@@ -414,7 +424,19 @@ export default function AdminOrdersPage() {
                     <td className="px-4 py-3"><StatusBadge status={order.status} /></td>
                     <td className="px-4 py-3"><div className="text-xs font-bold text-gray-600">{PAYMENT_METHODS[order.payment_method] || order.payment_method}</div><div className="mt-1"><PaymentBadge order={order} /></div></td>
                     <td className="whitespace-nowrap px-4 py-3 text-right font-black text-primary">{formatVND(order.total)}</td>
-                    <td className="px-5 py-3 text-right"><span className="inline-grid size-9 place-items-center rounded-full border border-gray-100 bg-white text-lg text-sole-dark shadow-sm transition group-hover:text-primary">›</span></td>
+                    <td className="px-5 py-3 text-right">
+                      <button
+                        type="button"
+                        onClick={event => {
+                          event.stopPropagation()
+                          toggleOrderDetail(order)
+                        }}
+                        aria-label={selected?.id === order.id ? 'Ẩn chi tiết đơn hàng' : 'Xem chi tiết đơn hàng'}
+                        className={`inline-grid size-9 place-items-center rounded-full border text-lg shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:text-primary hover:shadow-md ${selected?.id === order.id ? 'border-primary bg-primary text-white hover:text-white' : 'border-gray-100 bg-white text-sole-dark'}`}
+                      >
+                        <span className={`transition-transform duration-200 ${selected?.id === order.id ? 'rotate-90' : ''}`}>›</span>
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {!loading && visibleOrders.length === 0 && <tr><td colSpan={7} className="py-12 text-center text-gray-400">Không có đơn hàng</td></tr>}
@@ -436,7 +458,17 @@ export default function AdminOrdersPage() {
                   <div className="mt-1 font-mono text-sm font-black text-blue-900">#{selected.id}</div>
                   <p className="mt-1 text-xs text-gray-400">{formatVNDateTime(selected.created_at)}</p>
                 </div>
-                <StatusBadge status={selected.status} />
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={selected.status} />
+                  <button
+                    type="button"
+                    onClick={() => setSelected(null)}
+                    aria-label="Ẩn chi tiết đơn hàng"
+                    className="grid size-9 place-items-center rounded-full border border-gray-100 bg-white text-xl leading-none text-gray-400 shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:text-primary"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
             </div>
 
